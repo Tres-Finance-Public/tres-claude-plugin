@@ -1,0 +1,26 @@
+.DS_Store
+node_modules/
+*.log
+
+# Secrets and credentials — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# Local Claude settings
+.claude/settings.local.json

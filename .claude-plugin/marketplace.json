@@ -1,0 +1,20 @@
+{
+  "name": "tres-finance",
+  "owner": {
+    "name": "TRES Finance",
+    "email": "support@tres.finance"
+  },
+  "metadata": {
+    "description": "Official TRES Finance plugin marketplace for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "tres-finance-plugin",
+      "source": "./",
+      "description": "Blockchain accounting workflows, ledger management, and transaction analysis for TRES Finance.",
+      "version": "1.8.1",
+      "category": "finance",
+      "tags": ["blockchain", "accounting", "ledger", "crypto", "tres-finance"]
+    }
+  ]
+}

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRES Plugin Ecosystem - Animated Flow Diagram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #0a0e1a;
+      color: #f1f5f9;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+    .title-overlay {
+      position: absolute; top: 32px; left: 0; width: 100%;
+      text-align: center; pointer-events: none; z-index: 10;
+    }
+    .title-overlay h1 {
+      font-size: 26px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px;
+    }
+    .title-overlay p { font-size: 13px; color: #94a3b8; font-weight: 300; max-width: 600px; margin: 0 auto; line-height: 1.5; }
+    .legend {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 24px; z-index: 10; pointer-events: none;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #94a3b8; font-weight: 500;
+    }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tooltip {
+      position: absolute; display: none; padding: 12px 16px;
+      background: rgba(17, 24, 39, 0.95); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; pointer-events: none; z-index: 20;
+      max-width: 300px; backdrop-filter: blur(8px);
+    }
+    .tooltip-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .tooltip-desc { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+    .tooltip-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 100px;
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .tooltip-connections {
+      margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 10px; color: #64748b; line-height: 1.6;
+    }
+    .tooltip-conn-label {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: #475569; margin-bottom: 4px;
+    }
+    .tooltip-conn-item { color: #94a3b8; }
+    .tooltip-conn-item span { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="title-overlay">
+    <h1>TRES Plugin Ecosystem</h1>
+    <p>Each node is an AI skill. Connected skills pass data to each other, forming automated workflows across your crypto operations.</p>
+  </div>
+
+  <canvas id="c"></canvas>
+
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-badge" id="ttBadge"></div>
+    <div class="tooltip-title" id="ttTitle"></div>
+    <div class="tooltip-desc" id="ttDesc"></div>
+    <div class="tooltip-connections" id="ttConn"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Onboarding</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Reconciliation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Reporting</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Accounting</div>
+  </div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const ttBadge = document.getElementById('ttBadge');
+const ttTitle = document.getElementById('ttTitle');
+const ttDesc = document.getElementById('ttDesc');
+const ttConn = document.getElementById('ttConn');
+let W, H, cx, cy, dpr;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2; cy = H / 2 + 30;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const colors = {
+  onboarding: '#3b82f6',
+  reconciliation: '#10b981',
+  reporting: '#8b5cf6',
+  accounting: '#f59e0b',
+  hub: '#f1f5f9'
+};
+
+const descriptions = {
+  'Wallet Upload': 'Batch-onboard on-chain wallets and exchange accounts via CSV, Excel, or conversation.',
+  'Data Collection': 'Trigger on-chain data commits to pull balances, transactions, and token positions.',
+  'Balance Validation': 'Cross-check TRES balances against DeBank to catch discrepancies instantly.',
+  'Full Onboarding': 'End-to-end entity onboarding orchestrating all 8 steps in one conversation.',
+  'Cost Basis': 'Calculate gains/losses with FIFO, LIFO, AVG, Max Gains, Max Losses, or custom strategies.',
+  'ERP Rules': 'Map every crypto transaction type to your chart of accounts automatically.',
+  'Invoice Matching': 'Match ledger transactions to AP/AR invoices and sync to your ERP.',
+  'Recon Gaps': 'Detect, display, and resolve on-chain vs. book balance gaps.',
+  'Tag Suggestions': 'Find untagged transactions and apply intelligent classification rules.',
+  'Rollup Rules': 'Consolidate thousands of micro-transactions into clean summaries.',
+  'Contacts': 'Extract 3rd-party addresses and build your address book from tx history.',
+  'Settings': 'Configure org settings, platform toggles, and sync boundaries via conversation.',
+  'Tx Story': 'Visualize any blockchain transaction as a flow diagram with plain-English explanation.',
+  'Report Advisor': 'Ask a question and get pointed to the exact right TRES report.',
+  'Report Analyzer': 'Upload any TRES report and get automatic findings with anomalies flagged.',
+  'Portfolio': 'Instant snapshot of all wallets, holdings, networks, and balances.',
+  'Explorer to Ledger': 'Paste a block explorer URL and add the transaction directly to your ledger.',
+  'Reports Hub': 'Navigate the full TRES reports catalog: filters, formats, and scheduling.',
+};
+
+// Connection explanations: key = "SkillA->SkillB", value = reason
+const connectionReasons = {
+  // Onboarding sequential
+  'Wallet Upload->Data Collection': 'After wallets are uploaded, data collection pulls their on-chain activity.',
+  'Data Collection->Balance Validation': 'Once data is collected, balances are validated against on-chain sources.',
+  'Data Collection->Portfolio': 'Collected data populates the portfolio with up-to-date holdings.',
+
+  // Full Onboarding orchestration
+  'Full Onboarding->Wallet Upload': 'Onboarding starts by uploading all wallets for the new entity.',
+  'Full Onboarding->Data Collection': 'Onboarding triggers data collection after wallets are added.',
+  'Full Onboarding->Balance Validation': 'Onboarding validates balances to ensure data accuracy.',
+  'Full Onboarding->Contacts': 'Onboarding extracts and imports 3rd-party address labels.',
+  'Full Onboarding->Settings': 'Onboarding configures org settings like cost basis strategy and sync boundaries.',
+  'Full Onboarding->Recon Gaps': 'Onboarding runs reconciliation to catch any balance gaps.',
+  'Full Onboarding->Cost Basis': 'Onboarding sets up cost basis calculation for the entity.',
+  'Full Onboarding->Rollup Rules': 'Onboarding creates rollup rules to consolidate noisy transactions.',
+
+  // Onboarding → Reconciliation
+  'Balance Validation->Recon Gaps': 'Validation results feed into reconciliation to surface balance gaps.',
+  'Balance Validation->Portfolio': 'Validated balances provide accurate data for the portfolio view.',
+
+  // Reconciliation internal
+  'Recon Gaps->Tag Suggestions': 'Reconciled transactions are analyzed for missing tags and classifications.',
+  'Tag Suggestions->Rollup Rules': 'Once tagged, high-frequency transactions can be consolidated via rollup rules.',
+
+  // Reconciliation → Accounting
+  'Recon Gaps->Cost Basis': 'Reconciled and gap-free data feeds into accurate cost basis calculations.',
+
+  // Accounting internal
+  'Cost Basis->ERP Rules': 'Cost basis results determine how transactions are mapped to accounting entries.',
+  'ERP Rules->Invoice Matching': 'ERP-mapped transactions are matched against outstanding invoices and bills.',
+  'Explorer to Ledger->Cost Basis': 'Transactions added from block explorers are included in cost basis calculations.',
+
+  // Reporting internal
+  'Report Advisor->Report Analyzer': 'The advisor recommends a report, then the analyzer examines its contents.',
+  'Report Advisor->Reports Hub': 'The advisor points users to the right report in the reports catalog.',
+  'Reports Hub->Report Analyzer': 'Reports exported from the hub can be uploaded for automated analysis.',
+
+  // Cross-category
+  'Tx Story->Explorer to Ledger': 'After analyzing a transaction, it can be added directly to the ledger.',
+  'Rollup Rules->Report Analyzer': 'Rolled-up clean data produces cleaner reports for analysis.',
+  'Settings->Cost Basis': 'Settings control the cost basis strategy (FIFO, LIFO, AVG, etc.).',
+  'Settings->Data Collection': 'Sync boundary settings determine what date range data collection covers.',
+  'Settings->ERP Rules': 'ERP connection settings enable accounting rule mapping.',
+  'Contacts->Tag Suggestions': 'Known contact labels help identify and classify transactions automatically.',
+  'Tag Suggestions->ERP Rules': 'Transaction classifications inform how ERP accounting rules are applied.',
+  'Cost Basis->Report Analyzer': 'Cost basis reports can be analyzed for anomalies and issues.',
+  'Portfolio->Reports Hub': 'Portfolio data feeds into the broader reporting ecosystem.',
+};
+
+const hub = { x: 0, y: 0, r: 36, label: 'TRES', sublabel: 'Claude Plugin', color: colors.hub, isHub: true, cat: 'hub' };
+
+const categories = [
+  { key:'onboarding', angle: -Math.PI/2, skills: [
+    'Wallet Upload', 'Data Collection', 'Balance Validation', 'Full Onboarding', 'Contacts', 'Settings'
+  ]},
+  { key:'reconciliation', angle: 0, skills: [
+    'Recon Gaps', 'Tag Suggestions', 'Rollup Rules'
+  ]},
+  { key:'reporting', angle: Math.PI, skills: [
+    'Tx Story', 'Report Advisor', 'Report Analyzer', 'Portfolio', 'Reports Hub'
+  ]},
+  { key:'accounting', angle: Math.PI/2, skills: [
+    'Cost Basis', 'ERP Rules', 'Invoice Matching', 'Explorer to Ledger'
+  ]},
+];
+
+let nodes = [hub];
+let hubEdges = [];
+let skillEdges = [];
+
+categories.forEach(cat => {
+  const count = cat.skills.length;
+  const spread = Math.PI * 0.38;
+  cat.skills.forEach((name, i) => {
+    const angleOffset = (i - (count - 1) / 2) * (spread / Math.max(count - 1, 1));
+    nodes.push({
+      x: 0, y: 0, r: 16, label: name, color: colors[cat.key],
+      cat: cat.key, catAngle: cat.angle, angleOffset,
+      distOffset: (i % 2 === 0 ? 0 : 25),
+    });
+    hubEdges.push({ from: 0, to: nodes.length - 1 });
+  });
+});
+
+function findNode(name) { return nodes.findIndex(n => n.label === name); }
+
+const extraEdges = [
+  // Onboarding sequential
+  ['Wallet Upload', 'Data Collection'],
+  ['Data Collection', 'Balance Validation'],
+  ['Data Collection', 'Portfolio'],
+
+  // Full Onboarding orchestrates 8 steps
+  ['Full Onboarding', 'Wallet Upload'],
+  ['Full Onboarding', 'Data Collection'],
+  ['Full Onboarding', 'Balance Validation'],
+  ['Full Onboarding', 'Contacts'],
+  ['Full Onboarding', 'Settings'],
+  ['Full Onboarding', 'Recon Gaps'],
+  ['Full Onboarding', 'Cost Basis'],
+  ['Full Onboarding', 'Rollup Rules'],
+
+  // Onboarding feeds Reconciliation
+  ['Balance Validation', 'Recon Gaps'],
+  ['Balance Validation', 'Portfolio'],
+
+  // Reconciliation internal
+  ['Recon Gaps', 'Tag Suggestions'],
+  ['Tag Suggestions', 'Rollup Rules'],
+
+  // Reconciliation feeds Accounting
+  ['Recon Gaps', 'Cost Basis'],
+
+  // Accounting internal
+  ['Cost Basis', 'ERP Rules'],
+  ['ERP Rules', 'Invoice Matching'],
+  ['Explorer to Ledger', 'Cost Basis'],
+
+  // Reporting internal
+  ['Report Advisor', 'Report Analyzer'],
+  ['Report Advisor', 'Reports Hub'],
+  ['Reports Hub', 'Report Analyzer'],
+
+  // Cross-category
+  ['Tx Story', 'Explorer to Ledger'],
+  ['Rollup Rules', 'Report Analyzer'],
+  ['Settings', 'Cost Basis'],
+  ['Settings', 'Data Collection'],
+  ['Settings', 'ERP Rules'],
+  ['Contacts', 'Tag Suggestions'],
+  ['Tag Suggestions', 'ERP Rules'],
+  ['Cost Basis', 'Report Analyzer'],
+  ['Portfolio', 'Reports Hub'],
+];
+
+extraEdges.forEach(([a, b]) => {
+  const ia = findNode(a), ib = findNode(b);
+  if (ia >= 0 && ib >= 0) skillEdges.push({ from: ia, to: ib, fromName: a, toName: b });
+});
+
+// Build adjacency
+const adjacency = new Map();
+skillEdges.forEach(e => {
+  if (!adjacency.has(e.from)) adjacency.set(e.from, new Set());
+  if (!adjacency.has(e.to)) adjacency.set(e.to, new Set());
+  adjacency.get(e.from).add(e.to);
+  adjacency.get(e.to).add(e.from);
+});
+
+// Build connection info per node for tooltip
+function getConnectionInfo(nodeIdx) {
+  const nodeName = nodes[nodeIdx].label;
+  const lines = [];
+  skillEdges.forEach(e => {
+    if (e.from === nodeIdx || e.to === nodeIdx) {
+      const key1 = e.fromName + '->' + e.toName;
+      const key2 = e.toName + '->' + e.fromName;
+      const reason = connectionReasons[key1] || connectionReasons[key2];
+      const otherIdx = e.from === nodeIdx ? e.to : e.from;
+      const otherName = nodes[otherIdx].label;
+      const otherColor = nodes[otherIdx].color;
+      if (reason) {
+        lines.push({ name: otherName, reason, color: otherColor });
+      }
+    }
+  });
+  return lines;
+}
+
+function curveCP(e) {
+  const a = nodes[e.from], b = nodes[e.to];
+  const ax = cx+a.x, ay = cy+a.y, bx = cx+b.x, by = cy+b.y;
+  const mx = (ax+bx)/2, my = (ay+by)/2;
+  const dx = bx-ax, dy = by-ay;
+  const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+  const f = 0.15, px = -dy/dist*dist*f, py = dx/dist*dist*f;
+  const d1 = Math.sqrt((mx+px-cx)**2+(my+py-cy)**2);
+  const d2 = Math.sqrt((mx-px-cx)**2+(my-py-cy)**2);
+  return d1<d2 ? {ax,ay,bx,by,cpx:mx+px,cpy:my+py} : {ax,ay,bx,by,cpx:mx-px,cpy:my-py};
+}
+
+// Particles
+class Particle {
+  constructor(edge) {
+    this.edge = edge; this.t = Math.random();
+    this.speed = 0.0015 + Math.random()*0.003;
+    this.size = 1.2 + Math.random()*1.3;
+    this.forward = Math.random() > 0.5;
+  }
+  update() { this.t += this.speed; if (this.t > 1) { this.t = 0; this.forward = Math.random() > 0.5; } }
+  getPos() {
+    const c = curveCP(this.edge);
+    const tt = this.forward ? this.t : 1-this.t, u = 1-tt;
+    return { x: u*u*c.ax+2*u*tt*c.cpx+tt*tt*c.bx, y: u*u*c.ay+2*u*tt*c.cpy+tt*tt*c.by };
+  }
+  getColor() { return (this.forward ? nodes[this.edge.to] : nodes[this.edge.from]).color || colors.hub; }
+}
+
+let particles = [];
+skillEdges.forEach(e => { for (let i = 0; i < 2; i++) particles.push(new Particle(e)); });
+
+// Interaction
+let hoverNode = -1, mouseX = -9999, mouseY = -9999;
+
+canvas.addEventListener('mousemove', (evt) => {
+  mouseX = evt.clientX; mouseY = evt.clientY;
+  hoverNode = -1;
+  nodes.forEach((n, i) => {
+    const dx = (cx+n.x)-mouseX, dy = (cy+n.y)-mouseY;
+    if (Math.sqrt(dx*dx+dy*dy) < (n.r||16)+10) hoverNode = i;
+  });
+  canvas.style.cursor = hoverNode >= 0 ? 'pointer' : 'default';
+
+  if (hoverNode > 0) {
+    const n = nodes[hoverNode];
+    ttBadge.textContent = n.cat.charAt(0).toUpperCase() + n.cat.slice(1);
+    ttBadge.style.background = n.color + '22';
+    ttBadge.style.color = n.color;
+    ttTitle.textContent = n.label;
+    ttTitle.style.color = n.color;
+    ttDesc.textContent = descriptions[n.label] || '';
+
+    // Build connection tooltip
+    const conns = getConnectionInfo(hoverNode);
+    if (conns.length > 0) {
+      let html = '<div class="tooltip-conn-label">Connected to:</div>';
+      conns.forEach(c => {
+        html += '<div class="tooltip-conn-item"><span style="color:' + c.color + '">' + c.name + '</span> — ' + c.reason + '</div>';
+      });
+      ttConn.innerHTML = html;
+      ttConn.style.display = 'block';
+    } else {
+      ttConn.style.display = 'none';
+    }
+
+    tooltip.style.display = 'block';
+    tooltip.style.left = (mouseX + 16) + 'px';
+    tooltip.style.top = (mouseY - 10) + 'px';
+    const tr = tooltip.getBoundingClientRect();
+    if (tr.right > W) tooltip.style.left = (mouseX - tr.width - 16) + 'px';
+    if (tr.bottom > H) tooltip.style.top = (mouseY - tr.height + 10) + 'px';
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => { hoverNode = -1; tooltip.style.display = 'none'; mouseX = -9999; mouseY = -9999; });
+
+// Animation
+let time = 0;
+
+function draw() {
+  time += 0.016;
+  ctx.clearRect(0, 0, W, H);
+  const baseR = Math.min(W, H) * 0.33;
+
+  // Update node positions
+  let idx = 1;
+  categories.forEach(cat => {
+    cat.skills.forEach((_, i) => {
+      const n = nodes[idx];
+      const a = n.catAngle + n.angleOffset;
+      const dist = baseR + n.distOffset;
+      n.x = Math.cos(a)*dist + Math.sin(time*0.4+idx)*2.5;
+      n.y = Math.sin(a)*dist + Math.cos(time*0.35+idx*1.3)*2.5;
+      idx++;
+    });
+  });
+
+  // Category zone glows (soft blobs)
+  categories.forEach(cat => {
+    const col = colors[cat.key];
+    const blobDist = baseR * 0.75;
+    const bx = cx + Math.cos(cat.angle)*blobDist;
+    const by = cy + Math.sin(cat.angle)*blobDist;
+    const blobR = baseR * 0.9;
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, blobR);
+    g.addColorStop(0, col + '0d');
+    g.addColorStop(0.6, col + '06');
+    g.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(bx, by, blobR, 0, Math.PI*2);
+    ctx.fillStyle = g; ctx.fill();
+  });
+
+  // Hub center glow
+  const hubPulse = 1 + Math.sin(time*1.5)*0.12;
+  const hg = ctx.createRadialGradient(cx,cy,0,cx,cy,55*hubPulse);
+  hg.addColorStop(0,'rgba(59,130,246,0.06)'); hg.addColorStop(1,'transparent');
+  ctx.beginPath(); ctx.arc(cx,cy,55*hubPulse,0,Math.PI*2); ctx.fillStyle = hg; ctx.fill();
+
+  // Connected set for hover
+  const connectedSet = new Set();
+  if (hoverNode > 0 && adjacency.has(hoverNode)) {
+    connectedSet.add(hoverNode);
+    adjacency.get(hoverNode).forEach(n => connectedSet.add(n));
+  }
+
+  // Hub-to-node lines
+  hubEdges.forEach(e => {
+    const a = nodes[e.from], b = nodes[e.to];
+    const ax = cx+a.x, ay = cy+a.y, bx = cx+b.x, by = cy+b.y;
+    const col = nodes[e.to].color;
+    const grad = ctx.createLinearGradient(ax,ay,bx,by);
+    grad.addColorStop(0, col+'18'); grad.addColorStop(1, col+'30');
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+    ctx.strokeStyle = grad; ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // Skill edges (curved)
+  skillEdges.forEach(e => {
+    const c = curveCP(e);
+    const isHov = connectedSet.has(e.from) && connectedSet.has(e.to);
+    const fromColor = nodes[e.from].color, toColor = nodes[e.to].color;
+    ctx.beginPath(); ctx.moveTo(c.ax,c.ay); ctx.quadraticCurveTo(c.cpx,c.cpy,c.bx,c.by);
+    if (isHov) {
+      const grad = ctx.createLinearGradient(c.ax,c.ay,c.bx,c.by);
+      grad.addColorStop(0, fromColor+'cc'); grad.addColorStop(1, toColor+'cc');
+      ctx.strokeStyle = grad; ctx.lineWidth = 2.5; ctx.stroke();
+    } else {
+      const grad = ctx.createLinearGradient(c.ax,c.ay,c.bx,c.by);
+      grad.addColorStop(0, fromColor+'40'); grad.addColorStop(1, toColor+'40');
+      ctx.strokeStyle = grad; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+  });
+
+  // Particles
+  particles.forEach(p => {
+    p.update(); const pos = p.getPos(); const col = p.getColor();
+    ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(pos.x,pos.y,p.size,0,Math.PI*2);
+    ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,p.size*3);
+    g.addColorStop(0, col+'25'); g.addColorStop(1, col+'00');
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,p.size*3,0,Math.PI*2); ctx.fillStyle = g; ctx.fill();
+  });
+
+  // Draw nodes
+  nodes.forEach((n, i) => {
+    const nx = cx+n.x, ny = cy+n.y;
+    const isHov = hoverNode === i, isConn = connectedSet.has(i);
+    const pulse = 1 + Math.sin(time*2+i)*0.04;
+
+    if (n.isHub) {
+      const hr = n.r * pulse * (isHov ? 1.15 : 1);
+      const gg = ctx.createRadialGradient(nx,ny,hr,nx,ny,hr*2.5);
+      gg.addColorStop(0,'#3b82f618'); gg.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(nx,ny,hr*2.5,0,Math.PI*2); ctx.fillStyle = gg; ctx.fill();
+      ctx.beginPath(); ctx.arc(nx,ny,hr,0,Math.PI*2);
+      ctx.fillStyle = '#0E0E52'; ctx.fill(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '800 16px Inter,system-ui'; ctx.fillStyle = '#fff'; ctx.fillText('TRES',nx,ny-5);
+      ctx.font = '300 10px Inter,system-ui'; ctx.fillStyle = '#94a3b8'; ctx.fillText('Plugin',nx,ny+11);
+    } else {
+      const rad = n.r * pulse * (isHov ? 1.3 : 1);
+      if (isHov || isConn) {
+        const gg = ctx.createRadialGradient(nx,ny,rad,nx,ny,rad*3);
+        gg.addColorStop(0, n.color+(isHov?'30':'18')); gg.addColorStop(1,'transparent');
+        ctx.beginPath(); ctx.arc(nx,ny,rad*3,0,Math.PI*2); ctx.fillStyle = gg; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(nx,ny,rad,0,Math.PI*2);
+      ctx.fillStyle = (isHov||isConn) ? n.color+'30' : n.color+'15'; ctx.fill();
+      ctx.strokeStyle = isHov ? n.color+'dd' : isConn ? n.color+'88' : n.color+'55';
+      ctx.lineWidth = isHov ? 2 : 1.2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(nx,ny,4,0,Math.PI*2);
+      ctx.fillStyle = n.color+(isHov?'ee':'99'); ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.font = (isHov?'600':'500')+' 11px Inter,system-ui';
+      ctx.fillStyle = isHov ? '#f1f5f9' : isConn ? '#cbd5e1' : '#94a3b8';
+      const labelY = ny + rad + 8;
+      const words = n.label.split(' ');
+      if (words.length > 1 && n.label.length > 10) {
+        ctx.fillText(words[0], nx, labelY);
+        ctx.fillText(words.slice(1).join(' '), nx, labelY + 13);
+      } else {
+        ctx.fillText(n.label, nx, labelY);
+      }
+    }
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+
+</body>
+</html>
