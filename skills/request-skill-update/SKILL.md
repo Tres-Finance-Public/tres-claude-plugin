@@ -101,6 +101,7 @@ or about the plugin overall, note that.
 | `tres-invoice-bill-matching` | Match txs to ERP invoices/bills |
 | `tres-export-3rd-party-contacts` | Export unidentified counterparties to XLSX |
 | `tres-import-contacts` | Import contacts from CSV/XLSX |
+| `tres-cost-basis` | Cost basis calculation, strategy, issues, reevaluations, exports |
 | `tres-rollup-rules` | Sub-transaction rollup rules (aggregate txs) |
 | `tres-onboarding` | Full entity onboarding (orchestrates sub-skills) |
 | `tres-settings-management` | Org and platform settings |

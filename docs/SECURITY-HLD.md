@@ -99,7 +99,7 @@ All skills follow the same shape:
 `tres-tx-story`, `tres-recon-gaps` (display), `tres-asset-balance-validation-v2`, `tres-report-advisor-v2`, `tres-report-analyzer-v2` (operates on a user-supplied local XLSX), `tres-export-3rd-party-contacts`.
 
 ### Skills that **mutate** TRES data (always behind user confirmation)
-`explorer-tx-to-ledger`, `tres-import-contacts` (`setCustomAccountName`, `setCustomAccountNameLabelTags`), `tres-rollup-rules` (create/delete rollup rules), `tres-erp-rule-suggestions` (`upsertRule`), `tres-invoice-bill-matching` (`syncSpecificTransactions`, `setManualFiatValue`), `wallets-upload-v3` (wallet/exchange account creation), `tres-data-collection-commit` (triggers a commit), `tres-settings-management` (org/platform settings), `tres-onboarding` (orchestrates the above).
+`explorer-tx-to-ledger`, `tres-import-contacts` (`setCustomAccountName`, `setCustomAccountNameLabelTags`), `tres-rollup-rules` (create/delete rollup rules), `tres-erp-rule-suggestions` (`upsertRule`), `tres-invoice-bill-matching` (`syncSpecificTransactions`, `setManualFiatValue`), `wallets-upload-v3` (wallet/exchange account creation), `tres-data-collection-commit` (triggers a commit), `tres-cost-basis` (cost basis strategy, trigger calc, bulk fiat, reevaluations, spec-ID rules), `tres-settings-management` (org/platform settings), `tres-onboarding` (orchestrates the above).
 
 ### Skill that submits feedback
 `request-skill-update` calls a single MCP feedback tool — submits free-text feedback metadata only, no transaction data.
