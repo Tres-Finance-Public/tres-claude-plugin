@@ -24,6 +24,7 @@ tres-finance-plugin/
 │   ├── tres-onboarding/               # Full entity onboarding (orchestrates sub-skills)
 │   ├── wallets-upload/             # Upload & onboard on-chain wallets / exchange accounts
 │   ├── tres-data-collection-commit/   # Trigger on-chain data collection (Commit)
+│   ├── tres-cost-basis/               # Cost basis strategy, calculation, issues, exports
 │   ├── tres-settings-management/      # Manage org & platform settings via MCP
 │   └── request-skill-update/          # Submit plugin feedback via MCP
 ├── .mcp.json              # TRES Finance MCP connector
@@ -68,13 +69,16 @@ Import labeled contacts into TRES from a CSV or XLSX file (headers: Contact Name
 Create, list, and delete rollup rules that consolidate high-volume sub-transactions into daily or monthly aggregated ledger entries (wallet, asset, direction, fees, optional filters), using the TRES MCP GraphQL API.
 
 ### `tres-onboarding`
-Run the full new-entity pipeline in order: wallets upload, data collection commit, balance validation, reconciliation gaps, org/cost basis settings, export/import contacts for counterparties, and rollup rules — only when the user explicitly asks for full onboarding.
+Run the full new-entity pipeline in order: wallets upload, data collection commit, balance validation, reconciliation gaps, cost basis (`tres-cost-basis`), export/import contacts for counterparties, and rollup rules — only when the user explicitly asks for full onboarding.
 
 ### `wallets-upload`
 Upload and onboard multiple on-chain wallets or exchange accounts into TRES — from a CSV/Excel file or typed manually. Guides through wallet type selection, input collection, validation, an editable HTML preview, exchange credential collection, and batched creation via the TRES MCP API.
 
 ### `tres-data-collection-commit`
 Trigger on-chain data collection (a "Commit") in TRES for wallets that are already onboarded. Sits between `wallets-upload` and `tres-asset-balance-validation` in the onboarding flow — pulls balances, syncs wallets, and refreshes on-chain data.
+
+### `tres-cost-basis`
+Manage cost basis end-to-end via the TRES MCP: strategy (FIFO, LIFO, AVG, etc.), trigger recalculation, per-asset results, financial issues, missing fiat fixes, reevaluations/impairments, spec-ID rules, and cost basis report exports.
 
 ### `tres-settings-management`
 View and modify Organization Settings and Platform Settings via the TRES MCP GraphQL API — feature flags, balance diff, commit strategy, cost basis strategy, ERP, pricing, sync boundaries, enable/disable platforms, and other config.

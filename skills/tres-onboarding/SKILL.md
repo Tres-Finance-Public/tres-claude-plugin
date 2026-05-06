@@ -3,7 +3,7 @@ name: tres-onboarding
 description: >
   End-to-end onboarding of a new entity, customer, or account into TRES Finance.
   Orchestrates 8 steps in order: wallet upload, data collection (commit), balance
-  validation, reconciliation, cost basis settings, export unidentified addresses, import contacts,
+  validation, reconciliation, cost basis, export unidentified addresses, import contacts,
   and rollup rules. Trigger ONLY when the user explicitly wants to onboard a new entity,
   customer, or account — e.g. "onboard a new entity", "onboard new customer", "start
   onboarding for [name]", "set up a new account in TRES", "run the full onboarding flow",
@@ -26,18 +26,27 @@ that keeps the onboarding moving forward while each sub-skill handles the detail
 
 ## Before You Start
 
+**No visualizations for input gathering.** Do NOT use show_widget, HTML widgets, interactive
+forms, AskUserQuestion widgets, or any visualization tool when collecting initial context from
+the user or presenting the onboarding roadmap. Ask all questions and present the roadmap as
+plain text in the chat. This keeps the flow fast and responsive — building a widget just to
+ask for a name and wallet list adds unnecessary latency. Visualizations are fine later when
+individual sub-skills need them (e.g., balance validation dashboards, recon gap tables), but
+the onboarding kick-off and step transitions must be text-only.
+
 1. **Confirm intent.** The user must have explicitly requested a full onboarding (new entity,
    new customer, new account). If the request is ambiguous, ask: "Are you looking to run the
    full onboarding flow for a new entity, or do you just need help with a specific step
    (like uploading wallets or validating balances)?"
 
-2. **Collect context.** Ask the user for:
+2. **Collect context.** Ask the user in plain text (no widgets, no forms) for:
    - The entity/customer/account name
    - Any wallets or exchange accounts they already have ready (file, list, etc.)
    - Whether they have a target date in mind for the onboarding
 
-3. **Present the roadmap.** Before diving in, show the user what the full onboarding looks
-   like so they know what to expect. Use something like:
+3. **Present the roadmap.** Before diving in, show the user the roadmap as plain text
+   in the chat (not as an HTML widget or visualization) so they know what to expect.
+   Use something like:
 
    > Here's the onboarding roadmap for **[Entity Name]**:
    >
@@ -110,12 +119,12 @@ celebrate and move on.
 ---
 
 ### Step 5: Cost Basis
-**Skill:** `tres-settings-management`
+**Skill:** `tres-cost-basis`
 
-Invoke the tres-settings-management skill. This guides the user through organization settings
-via the TRES MCP, including cost basis strategy (FIFO, LIFO, AVG, etc.), related flags, and
-commit/sync options. Review any financial issues (negative balances, missing fiat prices)
-that surface after configuration or recalculation.
+Invoke the tres-cost-basis skill. This walks through strategy selection if needed, triggers
+cost basis calculation, surfaces per-asset results and financial issues, and covers
+reevaluations, spec-ID rules, and related cost basis operations as needed. Review any
+financial issues (negative balances, missing fiat prices) that surface.
 
 **Transition:** "Cost basis is configured and running. Next, let's identify the external
 addresses your wallets have been interacting with."
