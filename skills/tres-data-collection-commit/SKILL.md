@@ -5,7 +5,7 @@ description: >
   have already been onboarded. Use this skill whenever the user wants to collect
   data, pull balances, sync wallets, refresh on-chain data, run a commit, trigger
   a commit, or "collect" anything in Tres. This is the second step of the Tres
-  onboarding flow — it sits between wallet upload (wallets-upload) and balance
+  onboarding flow — it sits between wallet upload (tres-wallets-upload) and balance
   validation (tres-asset-balance-validation). Always trigger this skill for any
   request that mentions "commit", "collect", "data collection", "pull data",
   "fetch on-chain data", "sync wallets", "refresh balances", or anytime the user
@@ -29,7 +29,7 @@ each wallet and either:
 
 This skill is the **second step** of the customer onboarding flow:
 
-1. **Upload wallets** (`wallets-upload`) — register the wallets in Tres.
+1. **Upload wallets** (`tres-wallets-upload`) — register the wallets in Tres.
 2. **Collect data (this skill)** — run the commit so Tres actually fetches the
    on-chain state.
 3. **Validate balances** (`tres-asset-balance-validation`) — cross-check the
@@ -62,7 +62,7 @@ Trigger this skill whenever the user wants to:
 |---|---|
 | TRES Finance MCP connected | The TRES MCP tools (`get_viewer`, `execute`, `build_query`, `introspect`) must be available |
 | Authenticated org | `get_viewer` must succeed and return an `orgName` |
-| At least one wallet onboarded | If there are no wallets, commit has nothing to collect — point the user to `wallets-upload` first |
+| At least one wallet onboarded | If there are no wallets, commit has nothing to collect — point the user to `tres-wallets-upload` first |
 
 ---
 
@@ -265,7 +265,7 @@ the commit runs asynchronously and the data may not be ready immediately.
   per-wallet balance snapshots. It only skips transaction ingestion.
 - **No wallets uploaded yet?** If the user triggers this skill before onboarding
   any wallets, `internalAccount` will return `totalCount: 0`. Tell the user
-  they need to add wallets first (point to `wallets-upload`) and stop.
+  they need to add wallets first (point to `tres-wallets-upload`) and stop.
 - **Partial failures.** It is possible for the commit to succeed for some
   wallets and fail for others. The top-level `status` and `message` give the
   summary; deeper diagnostics live in the TRES UI under Data Collection logs.
@@ -279,7 +279,7 @@ the commit runs asynchronously and the data may not be ready immediately.
 | Situation | Response |
 |---|---|
 | `get_viewer` fails | Tell the user the TRES MCP is not connected; stop. |
-| `internalAccount.totalCount == 0` | Tell the user there are no wallets to commit; point to the `wallets-upload` skill; stop. |
+| `internalAccount.totalCount == 0` | Tell the user there are no wallets to commit; point to the `tres-wallets-upload` skill; stop. |
 | Mutation returns non-success `status` | Show the raw `status` and `message`; offer to retry or investigate. |
 | User provides wallet names that can't be resolved | Ask for clarification instead of guessing; never send unresolved names to the mutation. |
 | User asks for a date range | Accept `fromDate` / `toDate` as ISO 8601 UTC and pass them through; confirm the range in the summary before firing. |

@@ -9,7 +9,7 @@ description: >
   "set up this tx as AP", "set up this tx as AR", "sync this transaction as AP/AR", "match AP/AR", "find the
   invoice/bill for this hash", "what bill does this tx pay". Trigger ONLY for explicit AP/AR matching/closing
   intent — do NOT trigger for general transaction explanations (use tres-tx-story), for ingesting an explorer
-  link into the ledger (use explorer-tx-to-ledger), or for ERP connection setup itself (use tres-mcp-settings).
+  link into the ledger (use tres-explorer-tx-to-ledger), or for ERP connection setup itself (use tres-settings-management).
 ---
 
 # TRES — Invoice/Bill Matching & ERP Sync
@@ -344,6 +344,6 @@ Ask: *"Match another transaction or invoice/bill? (y/n)"*
 
 - Bulk matching (many ↔ many) — not yet supported by this skill.
 - Sending payments (`sendBillPayment`, `sendInvoicePayment`) — separate workflow.
-- Connecting or revoking the ERP itself — use the `tres-mcp-settings` skill.
+- Connecting or revoking the ERP itself — use the `tres-settings-management` skill.
 - Explaining a transaction in narrative form — use `tres-tx-story`.
-- Importing an explorer link into the ledger — use `explorer-tx-to-ledger`.
+- Importing an explorer link into the ledger — use `tres-explorer-tx-to-ledger`.

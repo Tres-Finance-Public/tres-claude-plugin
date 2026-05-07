@@ -9,7 +9,7 @@ description: >
   onboarding for [name]", "set up a new account in TRES", "run the full onboarding flow",
   "I need to onboard [company name]", "new entity onboarding". Do NOT trigger for
   individual tasks — those have their own dedicated skills. If the user asks to "add
-  wallets" without mentioning onboarding, use wallets-upload. "Validate balances" alone
+  wallets" without mentioning onboarding, use tres-wallets-upload. "Validate balances" alone
   is tres-asset-balance-validation. "Run a commit" alone is tres-data-collection-commit.
   Only trigger when the user wants the full pipeline.
 compatibility: "Requires TRES Finance MCP connector and all sub-skills listed below"
@@ -74,9 +74,9 @@ and follow its instructions. The sub-skill handles all the details — your job 
 transition smoothly between steps and keep the user oriented.
 
 ### Step 1: Upload Wallets
-**Skill:** `wallets-upload`
+**Skill:** `tres-wallets-upload`
 
-Invoke the wallets-upload skill. This guides the user through adding their on-chain
+Invoke the tres-wallets-upload skill. This guides the user through adding their on-chain
 wallets and/or exchange accounts into TRES. Once wallets are created, confirm the count
 and proceed.
 

@@ -3,7 +3,7 @@
 ## [1.8.1] - 2026-04-23
 
 ### Changed
-- **Breaking — skill IDs:** renamed skills for simpler invocation — `tres-asset-balance-validation-v2` → `tres-asset-balance-validation`, `tres-report-analyzer-v2` → `tres-report-analyzer`, `tres-report-advisor-v2` → `tres-report-advisor`, `wallets-upload-v3` → `wallets-upload` (update any saved `/<plugin>:<skill>` references)
+- **Breaking — skill IDs:** renamed skills for simpler invocation — `tres-asset-balance-validation-v2` → `tres-asset-balance-validation`, `tres-report-analyzer-v2` → `tres-report-analyzer`, `tres-report-advisor-v2` → `tres-report-advisor`, `wallets-upload-v3` → `tres-wallets-upload` (update any saved `/<plugin>:<skill>` references)
 
 ## [1.8.0] - 2026-04-23
 
@@ -29,7 +29,7 @@
 
 ### Added
 - `tres-erp-rule-suggestions` skill — guides users through ERP rule mapping for crypto orgs: fetches wallets, chart of accounts, existing rules, and transaction profiles via the TRES MCP, proposes a layered rule set aligned to the org's cost basis mode, and applies it via `upsertRule` after approval
-- `request-skill-update` skill — submit plugin feedback (bugs, features, improvements, new skill ideas, MCP issues, or praise) via the TRES MCP feedback tool (zero config for end users)
+- `tres-request-skill-update` skill — submit plugin feedback (bugs, features, improvements, new skill ideas, MCP issues, or praise) via the TRES MCP feedback tool (zero config for end users)
 
 ## [1.3.0] - 2026-04-13
 
@@ -46,4 +46,4 @@
 
 ### Added
 - Initial plugin scaffold with marketplace support
-- `explorer-tx-to-ledger` skill (placeholder)
+- `tres-explorer-tx-to-ledger` skill (placeholder)

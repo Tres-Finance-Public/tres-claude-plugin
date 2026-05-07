@@ -1,5 +1,5 @@
 ---
-name: tres-mcp-settings
+name: tres-settings-management
 description: Manage Organization Settings and Platform Settings via the TRES MCP GraphQL API. Use when users ask about org settings, platform settings, configuration, feature flags, enable/disable platforms, balance diff, commit strategy, cost basis, ERP, pricing, sync boundaries, or any setting read/write operation. Trigger phrases include "get settings", "show settings", "update settings", "change settings", "enable platform", "disable platform", "balance diff", "commit strategy", "cost basis strategy", "set min sync date", "configure", "turn on", "turn off".
 ---
 

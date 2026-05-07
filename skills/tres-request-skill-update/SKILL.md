@@ -1,5 +1,5 @@
 ---
-name: request-skill-update
+name: tres-request-skill-update
 description: >
   Submit feedback about the TRES Claude plugin — bug reports, feature requests, skill
   improvements, new skill ideas, MCP issues, workflow friction, or positive feedback about
@@ -92,7 +92,7 @@ or about the plugin overall, note that.
 
 | Skill | Description |
 |---|---|
-| `explorer-tx-to-ledger` | Add explorer TX to the TRES ledger |
+| `tres-explorer-tx-to-ledger` | Add explorer TX to the TRES ledger |
 | `tres-tx-story` | TX flow diagram and explanation |
 | `tres-recon-gaps` | Reconciliation gap resolution |
 | `tres-asset-balance-validation` | Balance validation vs DeBank |
@@ -105,8 +105,8 @@ or about the plugin overall, note that.
 | `tres-rollup-rules` | Sub-transaction rollup rules (aggregate txs) |
 | `tres-onboarding` | Full entity onboarding (orchestrates sub-skills) |
 | `tres-settings-management` | Org and platform settings |
-| `wallets-upload` | Wallet onboarding |
-| `request-skill-update` | This feedback skill |
+| `tres-wallets-upload` | Wallet onboarding |
+| `tres-request-skill-update` | This feedback skill |
 
 > **Maintainer note**: update this table when new skills are added to the plugin.
 

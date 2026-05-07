@@ -249,7 +249,7 @@ tres-finance-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
 ├── skills/                       # User-facing skills (distributed)
-│   └── explorer-tx-to-ledger/
+│   └── tres-explorer-tx-to-ledger/
 │       └── SKILL.md
 ├── LICENSE
 ├── CHANGELOG.md

@@ -1,5 +1,5 @@
 ---
-name: wallets-upload
+name: tres-wallets-upload
 description: >
   Upload and onboard multiple on-chain wallets or exchange accounts into Tres Finance.
   Use this skill whenever the user wants to add wallets, onboard wallets, import wallets,
