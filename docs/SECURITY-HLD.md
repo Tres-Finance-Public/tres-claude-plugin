@@ -99,10 +99,10 @@ All skills follow the same shape:
 `tres-tx-story`, `tres-recon-gaps` (display), `tres-asset-balance-validation-v2`, `tres-report-advisor-v2`, `tres-report-analyzer-v2` (operates on a user-supplied local XLSX), `tres-export-3rd-party-contacts`.
 
 ### Skills that **mutate** TRES data (always behind user confirmation)
-`explorer-tx-to-ledger`, `tres-import-contacts` (`setCustomAccountName`, `setCustomAccountNameLabelTags`), `tres-rollup-rules` (create/delete rollup rules), `tres-erp-rule-suggestions` (`upsertRule`), `tres-invoice-bill-matching` (`syncSpecificTransactions`, `setManualFiatValue`), `wallets-upload-v3` (wallet/exchange account creation), `tres-data-collection-commit` (triggers a commit), `tres-cost-basis` (cost basis strategy, trigger calc, bulk fiat, reevaluations, spec-ID rules), `tres-settings-management` (org/platform settings), `tres-onboarding` (orchestrates the above).
+`tres-explorer-tx-to-ledger`, `tres-import-contacts` (`setCustomAccountName`, `setCustomAccountNameLabelTags`), `tres-rollup-rules` (create/delete rollup rules), `tres-erp-rule-suggestions` (`upsertRule`), `tres-invoice-bill-matching` (`syncSpecificTransactions`, `setManualFiatValue`), `tres-wallets-upload` (wallet/exchange account creation), `tres-data-collection-commit` (triggers a commit), `tres-cost-basis` (cost basis strategy, trigger calc, bulk fiat, reevaluations, spec-ID rules), `tres-settings-management` (org/platform settings), `tres-onboarding` (orchestrates the above).
 
 ### Skill that submits feedback
-`request-skill-update` calls a single MCP feedback tool — submits free-text feedback metadata only, no transaction data.
+`tres-request-skill-update` calls a single MCP feedback tool — submits free-text feedback metadata only, no transaction data.
 
 ---
 
@@ -112,8 +112,8 @@ All skills follow the same shape:
 |---|---|---|
 | User-typed prompts | user | passed to Claude as natural language |
 | TRES API token | user | stored in OS keychain by Claude Code, never read by plugin code |
-| CSV/XLSX uploads (`tres-import-contacts`, `tres-report-analyzer-v2`, `wallets-upload-v3`) | user's local filesystem | parsed locally; for `tres-report-analyzer-v2` the parser is `analyze_report.py` (openpyxl) — runs in the user's local Python env |
-| Explorer URLs / tx hashes (`explorer-tx-to-ledger`, `tres-tx-story`) | user | passed to TRES MCP for resolution |
+| CSV/XLSX uploads (`tres-import-contacts`, `tres-report-analyzer-v2`, `tres-wallets-upload`) | user's local filesystem | parsed locally; for `tres-report-analyzer-v2` the parser is `analyze_report.py` (openpyxl) — runs in the user's local Python env |
+| Explorer URLs / tx hashes (`tres-explorer-tx-to-ledger`, `tres-tx-story`) | user | passed to TRES MCP for resolution |
 | GraphQL responses from TRES MCP | TRES backend | rendered in chat / written to local HTML/PDF/XLSX |
 
 The plugin does not execute remote code, does not download binaries, and does not interact with the user's wallet keys, signing keys, private keys, or seed phrases at any point. Wallet "upload" handles **public addresses and exchange API read keys only**, entered by the user.
@@ -159,7 +159,7 @@ Pentesters can exercise the full plugin end-to-end from their own machines:
 1. Install [Claude Code](https://claude.ai/claude-code) and sign in with the tester's Anthropic account.
 2. Add the plugin: `/plugin marketplace add tres-finance/tres-finance-plugin` (or, for a local checkout, `claude --plugin-dir <path-to-clone>`).
 3. When prompted, complete the **OAuth browser login** using credentials for the dedicated pentest org at https://app.tres.finance.
-4. Invoke skills by name (e.g., `/tres-recon-gaps`, `/wallets-upload-v3`) or by natural-language requests that match the skill descriptions.
+4. Invoke skills by name (e.g., `/tres-recon-gaps`, `/tres-wallets-upload`) or by natural-language requests that match the skill descriptions.
 
 - **MCP endpoint exercised:** `https://ai.tres.finance/mcp` (production). A scoped pentest org + revocable token is the isolation boundary; no separate staging MCP is required.
 - **Out of scope for this engagement:** TRES web app, TRES backend infra, and any customer data. Pentest must stay within the dedicated test org.

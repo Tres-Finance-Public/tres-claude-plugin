@@ -1,5 +1,5 @@
 ---
-name: explorer-tx-to-ledger
+name: tres-explorer-tx-to-ledger
 description: >
   Add a blockchain explorer transaction to the TRES Finance ledger. Use when the user provides a
   blockchain explorer URL (Etherscan, Polygonscan, Arbiscan, Basescan, Snowtrace, BscScan, etc.)

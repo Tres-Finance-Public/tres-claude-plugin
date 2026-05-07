@@ -10,7 +10,7 @@ tres-finance-plugin/
 │   ├── plugin.json        # Plugin metadata & userConfig
 │   └── marketplace.json   # Marketplace listing
 ├── skills/
-│   ├── explorer-tx-to-ledger/         # Explorer TX -> ledger entry
+│   ├── tres-explorer-tx-to-ledger/    # Explorer TX -> ledger entry
 │   ├── tres-tx-story/                 # TX flow diagram & explanation
 │   ├── tres-recon-gaps/               # Reconciliation gap resolution
 │   ├── tres-asset-balance-validation/ # Balance validation vs DeBank (+ DeFi positions)
@@ -22,11 +22,11 @@ tres-finance-plugin/
 │   ├── tres-import-contacts/          # Import contacts from CSV/XLSX
 │   ├── tres-rollup-rules/             # Sub-transaction rollup rules (aggregate txs)
 │   ├── tres-onboarding/               # Full entity onboarding (orchestrates sub-skills)
-│   ├── wallets-upload/             # Upload & onboard on-chain wallets / exchange accounts
+│   ├── tres-wallets-upload/           # Upload & onboard on-chain wallets / exchange accounts
 │   ├── tres-data-collection-commit/   # Trigger on-chain data collection (Commit)
 │   ├── tres-cost-basis/               # Cost basis strategy, calculation, issues, exports
 │   ├── tres-settings-management/      # Manage org & platform settings via MCP
-│   └── request-skill-update/          # Submit plugin feedback via MCP
+│   └── tres-request-skill-update/     # Submit plugin feedback via MCP
 ├── .mcp.json              # TRES Finance MCP connector
 ├── CHANGELOG.md
 ├── LICENSE
@@ -35,7 +35,7 @@ tres-finance-plugin/
 
 ## Skills
 
-### `explorer-tx-to-ledger`
+### `tres-explorer-tx-to-ledger`
 Add a blockchain explorer transaction to the TRES Finance ledger. Provide an explorer URL or transaction hash, and this skill parses the on-chain data into a structured ledger entry.
 
 ### `tres-tx-story`
@@ -71,11 +71,11 @@ Create, list, and delete rollup rules that consolidate high-volume sub-transacti
 ### `tres-onboarding`
 Run the full new-entity pipeline in order: wallets upload, data collection commit, balance validation, reconciliation gaps, cost basis (`tres-cost-basis`), export/import contacts for counterparties, and rollup rules — only when the user explicitly asks for full onboarding.
 
-### `wallets-upload`
+### `tres-wallets-upload`
 Upload and onboard multiple on-chain wallets or exchange accounts into TRES — from a CSV/Excel file or typed manually. Guides through wallet type selection, input collection, validation, an editable HTML preview, exchange credential collection, and batched creation via the TRES MCP API.
 
 ### `tres-data-collection-commit`
-Trigger on-chain data collection (a "Commit") in TRES for wallets that are already onboarded. Sits between `wallets-upload` and `tres-asset-balance-validation` in the onboarding flow — pulls balances, syncs wallets, and refreshes on-chain data.
+Trigger on-chain data collection (a "Commit") in TRES for wallets that are already onboarded. Sits between `tres-wallets-upload` and `tres-asset-balance-validation` in the onboarding flow — pulls balances, syncs wallets, and refreshes on-chain data.
 
 ### `tres-cost-basis`
 Manage cost basis end-to-end via the TRES MCP: strategy (FIFO, LIFO, AVG, etc.), trigger recalculation, per-asset results, financial issues, missing fiat fixes, reevaluations/impairments, spec-ID rules, and cost basis report exports.
@@ -83,21 +83,21 @@ Manage cost basis end-to-end via the TRES MCP: strategy (FIFO, LIFO, AVG, etc.),
 ### `tres-settings-management`
 View and modify Organization Settings and Platform Settings via the TRES MCP GraphQL API — feature flags, balance diff, commit strategy, cost basis strategy, ERP, pricing, sync boundaries, enable/disable platforms, and other config.
 
-### `wallets-upload-v3`
-Upload and onboard multiple on-chain wallets or exchange accounts into TRES — from a CSV/Excel file or typed manually. Guides through wallet type selection, input collection, validation, an editable HTML preview, exchange credential collection, and batched creation via the TRES MCP API.
+### Legacy alias: `wallets-upload-v3` → `tres-wallets-upload`
+Older docs may refer to `wallets-upload-v3`. The current skill ID is `tres-wallets-upload`.
 
 ### `tres-data-collection-commit`
-Trigger on-chain data collection (a "Commit") in TRES for wallets that are already onboarded. Sits between `wallets-upload-v3` and `tres-asset-balance-validation-v2` in the onboarding flow — pulls balances, syncs wallets, and refreshes on-chain data.
+Trigger on-chain data collection (a "Commit") in TRES for wallets that are already onboarded. Sits between `tres-wallets-upload` and `tres-asset-balance-validation` in the onboarding flow — pulls balances, syncs wallets, and refreshes on-chain data.
 
 ### `tres-settings-management`
 View and modify Organization Settings and Platform Settings via the TRES MCP GraphQL API — feature flags, balance diff, commit strategy, cost basis strategy, ERP, pricing, sync boundaries, enable/disable platforms, and other config.
 
-### `request-skill-update`
+### `tres-request-skill-update`
 Submit feedback about any part of the plugin — bug reports, feature requests, skill improvements, new skill ideas, MCP issues, or positive feedback. Guides you through articulating clear, actionable feedback and saves it via the TRES MCP.
 
 ## Submit Feedback
 
-Have feedback about the plugin? Use the `request-skill-update` skill directly in Claude Code — it guides you through describing your feedback clearly and submits it for the team to review.
+Have feedback about the plugin? Use the `tres-request-skill-update` skill directly in Claude Code — it guides you through describing your feedback clearly and submits it for the team to review.
 
 ## MCP Connector
 
