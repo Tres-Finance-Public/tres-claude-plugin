@@ -39,7 +39,7 @@
     }
 
     /* ═══════════════════════════════════════
-       SECTION 1 — Animated Ecosystem Diagram
+       Animated Ecosystem Diagram
        ═══════════════════════════════════════ */
     .ecosystem-section {
       position: relative;
@@ -90,18 +90,8 @@
     .eco-tooltip-conn-item { color: #94a3b8; }
     .eco-tooltip-conn-item span { font-weight: 600; }
 
-    .scroll-hint {
-      position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%);
-      z-index: 10; text-align: center; animation: bounce 2s ease-in-out infinite;
-    }
-    .scroll-hint svg { width: 24px; height: 24px; color: #64748b; }
-    @keyframes bounce {
-      0%,100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(8px); }
-    }
-
     /* ═══════════════════════════════
-       SECTION 2 — Plugin Showcase
+       Plugin Showcase
        ═══════════════════════════════ */
     .bg-mesh {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -351,39 +341,7 @@
 <body>
 
   <!-- ════════════════════════════════════════
-       SECTION 1: Animated Ecosystem Diagram
-       ════════════════════════════════════════ -->
-  <section class="ecosystem-section" id="ecosystem">
-    <div class="title-overlay">
-      <h1>TRES Plugin Ecosystem</h1>
-      <p>Each node is an AI skill. Connected skills pass data to each other, forming automated workflows across your crypto operations.</p>
-    </div>
-
-    <canvas id="c"></canvas>
-
-    <div class="eco-tooltip" id="ecoTooltip">
-      <div class="eco-tooltip-badge" id="ttBadge"></div>
-      <div class="eco-tooltip-title" id="ttTitle"></div>
-      <div class="eco-tooltip-desc" id="ttDesc"></div>
-      <div class="eco-tooltip-connections" id="ttConn"></div>
-    </div>
-
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Onboarding</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Reconciliation</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Reporting</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Accounting</div>
-    </div>
-
-    <div class="scroll-hint">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    </div>
-  </section>
-
-  <div class="section-divider"></div>
-
-  <!-- ════════════════════════════════════════
-       SECTION 2: Plugin Showcase
+       SECTION 1: Plugin Showcase
        ════════════════════════════════════════ -->
   <div class="bg-mesh"></div>
   <div id="particles"></div>
@@ -442,11 +400,39 @@
         Read the User Guide
       </a>
     </section>
-
-    <footer class="page-footer">
-      &copy; 2026 <a href="https://tres.finance">TRES Finance</a>. All rights reserved.
-    </footer>
   </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ════════════════════════════════════════
+       SECTION 2: Animated Ecosystem Diagram
+       ════════════════════════════════════════ -->
+  <section class="ecosystem-section" id="ecosystem">
+    <div class="title-overlay">
+      <h1>TRES Plugin Ecosystem</h1>
+      <p>Each node is an AI skill. Connected skills pass data to each other, forming automated workflows across your crypto operations.</p>
+    </div>
+
+    <canvas id="c"></canvas>
+
+    <div class="eco-tooltip" id="ecoTooltip">
+      <div class="eco-tooltip-badge" id="ttBadge"></div>
+      <div class="eco-tooltip-title" id="ttTitle"></div>
+      <div class="eco-tooltip-desc" id="ttDesc"></div>
+      <div class="eco-tooltip-connections" id="ttConn"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Onboarding</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Reconciliation</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Reporting</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Accounting</div>
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    &copy; 2026 <a href="https://tres.finance">TRES Finance</a>. All rights reserved.
+  </footer>
 
 <!-- ════════════════════════════════════════
      SCRIPT: Ecosystem Diagram (canvas)
