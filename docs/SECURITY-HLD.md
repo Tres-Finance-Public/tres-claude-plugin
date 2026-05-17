@@ -3,7 +3,7 @@
 **Audience:** TRES Security team
 **Purpose:** Provide architecture, data flows, trust boundaries, and the surface area to be scanned/pentested ahead of making this repository public and submitting to the Anthropic plugin marketplace.
 **Repo:** https://github.com/Tres-Finance-Public/tres-claude-plugin
-**Plugin version at time of writing:** 1.8.0
+**Plugin version at time of writing:** 1.9.0
 **Last updated:** 2026-04-27
 
 ---
@@ -17,10 +17,13 @@ It is **not** a server, not a daemon, not a hosted service. Nothing in this repo
 - `plugin.json` / `marketplace.json` — plugin metadata + `userConfig` declaration
 - `.mcp.json` — pointer to the TRES Finance MCP endpoint (`https://ai.tres.finance/mcp`)
 - `skills/*/SKILL.md` — natural-language playbooks Claude Code follows when a skill is triggered
-- One helper script: `skills/tres-report-analyzer-v2/scripts/analyze_report.py` (parses uploaded XLSX reports locally on the user's machine)
+- `skills/tres-report-analyzer/scripts/analyze_report.py` — parses uploaded XLSX reports locally on the user's machine
+- `hooks/hooks.json` — hook event wiring (PostToolUse, PostToolUseFailure, Stop)
+- `scripts/track.sh` — thin bash wrapper that fire-and-forgets telemetry events
+- `scripts/telemetry.py` — telemetry logic: identity caching and event dispatch to the TRES backend
 - `LICENSE`, `README.md`, `CHANGELOG.md`
 
-There is **no compiled code, no bundled binaries, no transitive dependencies installed by the plugin itself**. The Python script uses only the user's existing Python environment.
+There is **no compiled code, no bundled binaries, no transitive dependencies installed by the plugin itself**. All scripts use only the user's existing Python 3 and bash environments.
 
 ---
 
@@ -70,6 +73,7 @@ There is **no compiled code, no bundled binaries, no transitive dependencies ins
 | Claude Code ↔ Anthropic API | HTTPS | user's Anthropic account |
 | Claude Code ↔ TRES MCP server | HTTPS | OAuth 2.0 (browser login flow, managed by Claude Desktop) |
 | TRES MCP ↔ TRES backend | internal | TRES-managed (out of scope of this repo) |
+| Plugin hooks ↔ TRES telemetry endpoint | HTTPS POST | unauthenticated; session_id validated server-side |
 
 ### Components owned by this repo
 
@@ -106,6 +110,61 @@ All skills follow the same shape:
 
 ---
 
+## 4.1 Telemetry data flow
+
+Starting in v1.9.0, the plugin ships three hook-related files that send anonymized usage telemetry to the TRES backend.
+
+### What is sent
+
+| Field | Example | Notes |
+|---|---|---|
+| `event` | `skill_invoked`, `mcp_tool_call`, `skill_completed` | Event type only |
+| `properties.skill_name` | `tres-recon-gaps` | For `skill_invoked` only; stripped of plugin prefix |
+| `properties.tool_name` | `execute` | For `mcp_tool_call` only; stripped of MCP namespace |
+| `properties.success` | `true` / `false` | For `mcp_tool_call` only |
+| `properties.session_id` | `ses_abc123` | Claude Code session identifier |
+| `properties.org_id` | `42` | From `get_viewer` response; cached locally |
+| `properties.org_name` | `Acme Labs` | From `get_viewer` response; cached locally |
+| `properties.email` | `user@acme.com` | From `get_viewer` response; cached locally |
+| `properties.plugin_version` | `1.9.0` | Hardcoded in `telemetry.py` |
+| `properties.timestamp` | `2026-05-17T14:30:00Z` | UTC ISO 8601 |
+
+### What is NOT sent
+
+- GraphQL query content (`tool_input`)
+- Tool responses (financial data, transaction records, balances)
+- Wallet addresses, private keys, or any financial data
+
+### Data flow
+
+```
+User's machine
+  │
+  ├── Hook fires (PostToolUse / Stop)
+  ├── scripts/track.sh — reads event JSON, backgrounds scripts/telemetry.py
+  ├── scripts/telemetry.py:
+  │     ├── Reads ${CLAUDE_PLUGIN_DATA}/identity.json (org_id, org_name, email)
+  │     ├── Lazy identity caching: on first get_viewer response, writes identity.json
+  │     ├── On switch_organization: deletes identity.json (refreshed on next get_viewer)
+  │     └── POSTs payload to https://ai.tres.finance/telemetry (5s timeout, fire-and-forget)
+  │
+  └── TRES backend receives event → forwards to Mixpanel via server-side token
+```
+
+### Identity cache
+
+Cached at `${CLAUDE_PLUGIN_DATA}/identity.json` (resolves to `~/.claude/plugins/data/<plugin-id>/identity.json`). Contains: `org_id`, `org_name`, `email`. This file has the same sensitivity level as the OAuth token managed by Claude Desktop. It is user-readable only by default OS umask.
+
+### Failure mode
+
+All telemetry failures are silent. `track.sh` always exits 0. `telemetry.py` catches all exceptions and exits 0. A network failure or an unreachable telemetry endpoint never surfaces to the user or blocks a skill.
+
+### Telemetry endpoint authentication
+
+The `POST /telemetry` endpoint (TRES-hosted, not in this repo) accepts unauthenticated POSTs. Server-side validation uses the `session_id` field to correlate events with known MCP sessions. The Mixpanel project token is stored server-side only — it is never in the plugin.
+
+---
+
 ## 5. Untrusted inputs
 
 | Input | Source | Handling |
@@ -126,7 +185,9 @@ In-scope threats (this repo):
 
 - **Secret leakage in repo** — checked: no secrets present, `.gitignore` covers logs and `.DS_Store`. Token is `sensitive: true` in `plugin.json` and never stored in the repo.
 - **Skill-prompt injection / unsafe instructions** — the skill markdown files instruct Claude to ask for confirmation before any mutation. Reviewers should validate that every mutating skill has an explicit confirmation gate (search for `setManualFiatValue`, `syncSpecificTransactions`, `upsertRule`, `createSubTransactionRollupRules`, `setCustomAccountName` in `skills/`).
-- **Malicious or buggy local script** — only one script ships: `skills/tres-report-analyzer-v2/scripts/analyze_report.py`. It parses XLSX with openpyxl on the user's machine and emits findings to stdout. No network, no eval.
+- **Malicious or buggy local scripts** — three scripts ship: `skills/tres-report-analyzer/scripts/analyze_report.py` (no network, no eval), `scripts/track.sh` (bash wrapper, exits 0 always), and `scripts/telemetry.py` (POSTs minimal metadata to TRES backend via HTTPS, no eval, no arbitrary command execution). All network calls use `urllib.request` with a 5-second timeout. No subprocess spawning beyond the backgrounded Python call in `track.sh`.
+- **Telemetry data leakage** — only tool/skill names and org identity metadata are sent; no financial data, no query content. The endpoint is on the same domain as the MCP server. Communication is HTTPS only.
+- **Identity cache on disk** — `${CLAUDE_PLUGIN_DATA}/identity.json` contains org_id, org_name, and email. Same sensitivity as the OAuth token managed by Claude Desktop. No additional hardening is applied beyond default OS file permissions.
 - **Malicious MCP endpoint substitution** — `.mcp.json` pins `https://ai.tres.finance/mcp` (HTTPS). A malicious fork could change this; standard supply-chain hygiene applies (signed releases / marketplace verification by Anthropic).
 - **MCP endpoint TLS integrity** — The MCP endpoint uses standard PKI (HTTPS). Certificate pinning is not currently supported by Claude Code for MCP connections. Trust relies on standard PKI + Anthropic marketplace verification + the user's local OS trust store. This is acceptable for a marketplace plugin; no custom CA or cert SHA pinning is available.
 - **Historical hook scripts** — Two hook scripts (`session-start-load-memory.sh`, `stop-propose-memory.sh`, git blobs `3dbe5cc9` / `c610861b`) were prototyped for an org-shared memory feature and removed in commit `a0ad8df`. They contain no secrets or sensitive data. The feature was never shipped. This note is here for transparency; run `git filter-repo` if history cleanliness is required before going public.
@@ -147,7 +208,10 @@ Out of scope for this repo's review (handled by TRES backend security):
   - All `*.md` files under `skills/` (skill playbooks — instruction content, no executable code)
   - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (metadata)
   - `.mcp.json` (MCP server pointer)
-  - `skills/tres-report-analyzer-v2/scripts/analyze_report.py` (the only executable file)
+  - `hooks/hooks.json` (hook event wiring)
+  - `scripts/track.sh` (bash hook wrapper)
+  - `scripts/telemetry.py` (telemetry dispatch — the only file that makes outbound network calls from the plugin)
+  - `skills/tres-report-analyzer/scripts/analyze_report.py` (XLSX parser — local only, no network)
 - The repo has **no package.json, no requirements.txt, no Dockerfile, no CI secrets**. There is nothing to `npm install` / `pip install` from this repo.
 
 ---
@@ -169,7 +233,7 @@ Pentesters can exercise the full plugin end-to-end from their own machines:
 ## 9. Release & distribution
 
 - Plugin is distributed via the **Claude Code plugin marketplace** (Anthropic-managed). Anthropic's marketplace is the integrity boundary for end users.
-- Releases are tagged in git (`v1.8.0`, etc.); `CHANGELOG.md` tracks the surface area added per version.
+- Releases are tagged in git (`v1.9.0`, etc.); `CHANGELOG.md` tracks the surface area added per version.
 - A pre-release checklist lives at `.claude/skills/tres-plugin-release/SKILL.md` (developer-facing).
 
 ---

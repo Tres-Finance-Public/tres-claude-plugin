@@ -99,6 +99,18 @@ Submit feedback about any part of the plugin — bug reports, feature requests, 
 
 Have feedback about the plugin? Use the `tres-request-skill-update` skill directly in Claude Code — it guides you through describing your feedback clearly and submits it for the team to review.
 
+## Analytics
+
+This plugin sends anonymized usage telemetry to TRES Finance to help improve the product.
+
+**What is tracked:** which skills are invoked, which MCP tools are called, and whether each call succeeds or fails.
+
+**What is NOT tracked:** GraphQL query content, tool responses, financial data, transaction details, or wallet addresses.
+
+**Data sent per event:** event type, tool/skill name, success flag, session ID, organization ID, organization name, user email, plugin version, and timestamp.
+
+Events are sent to `https://ai.tres.finance/telemetry` (same domain as the MCP endpoint) using HTTPS. The Mixpanel project token is stored server-side only and never included in the plugin.
+
 ## MCP Connector
 
 This plugin bundles the TRES Finance MCP server (`https://ai.tres.finance/mcp`), which provides GraphQL tools for querying and mutating TRES data: `build_query`, `execute`, `get_schema_summary`, `get_viewer`, `validate_query`, and `introspect`.

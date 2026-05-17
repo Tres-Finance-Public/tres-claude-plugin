@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.0] - 2026-05-17
+
+### Added
+- Usage analytics: skill invocations and MCP tool calls are tracked via the TRES backend (forwarded to Mixpanel server-side). No financial data, GraphQL query content, or tool responses are included — only event type, tool/skill name, success flag, org identity, session ID, plugin version, and timestamp. See `docs/SECURITY-HLD.md` for the full data-flow description.
+
 ## [1.8.1] - 2026-04-23
 
 ### Changed
