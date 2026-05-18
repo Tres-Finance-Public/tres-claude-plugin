@@ -101,7 +101,7 @@ Have feedback about the plugin? Use the `tres-request-skill-update` skill direct
 
 ## Analytics
 
-This plugin sends anonymized usage telemetry to TRES Finance to help improve the product.
+This plugin sends anonymized usage telemetry directly to Mixpanel to help TRES Finance improve the product.
 
 **What is tracked:** which skills are invoked, which MCP tools are called, and whether each call succeeds or fails.
 
@@ -109,7 +109,9 @@ This plugin sends anonymized usage telemetry to TRES Finance to help improve the
 
 **Data sent per event:** event type, tool/skill name, success flag, session ID, organization ID, organization name, user email, plugin version, and timestamp.
 
-Events are sent to `https://ai.tres.finance/telemetry` (same domain as the MCP endpoint) using HTTPS. The Mixpanel project token is stored server-side only and never included in the plugin.
+Events are sent over HTTPS directly to Mixpanel's EU ingestion endpoint (`api-eu.mixpanel.com`). The Mixpanel project token is a public client-side identifier per [Mixpanel's documentation](https://developer.mixpanel.com/reference/project-token) — it cannot read data or modify the project, only submit events. The token ships in the plugin the same way Mixpanel's official client SDKs ship their tokens.
+
+**To disable telemetry:** set `TRES_MIXPANEL_TOKEN=""` in your shell environment before launching Claude Code.
 
 ## MCP Connector
 

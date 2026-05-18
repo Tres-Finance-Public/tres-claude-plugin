@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.10.0] - 2026-05-18
+
+### Changed
+- **Telemetry: direct-to-Mixpanel.** Plugin now sends usage events directly to Mixpanel rather than via the TRES backend proxy at `https://ai.tres.finance/telemetry`. This removes a network hop, removes a runtime dependency on TRES backend availability for analytics, and matches the standard pattern used by Mixpanel's official client SDKs and the TRES web dashboard. No change to what data is collected — only where it is sent.
+
+### Internal
+- `scripts/telemetry.py` rewritten for direct ingestion to `api-eu.mixpanel.com`. Mixpanel project token is now embedded in the plugin per [Mixpanel's published guidance](https://developer.mixpanel.com/reference/project-token) (project tokens are explicitly non-secret, write-only identifiers — same as the token already public in the TRES web dashboard's JS bundle).
+- People profile upsert (Mixpanel `/engage`) now runs in the plugin with a per-install dedup cache stored alongside the identity cache. Re-upserts on plugin version change to keep `plugin_version` fresh on the People page.
+- Removed: `TRES_TELEMETRY_URL` env var (no longer applicable).
+- Added: optional `TRES_MIXPANEL_TOKEN` / `TRES_MIXPANEL_HOST` env overrides for testing. Set `TRES_MIXPANEL_TOKEN=""` to disable telemetry entirely.
+
 ## [1.9.0] - 2026-05-17
 
 ### Added

@@ -3,8 +3,8 @@
 **Audience:** TRES Security team
 **Purpose:** Provide architecture, data flows, trust boundaries, and the surface area to be scanned/pentested ahead of making this repository public and submitting to the Anthropic plugin marketplace.
 **Repo:** https://github.com/Tres-Finance-Public/tres-claude-plugin
-**Plugin version at time of writing:** 1.9.0
-**Last updated:** 2026-04-27
+**Plugin version at time of writing:** 1.10.0
+**Last updated:** 2026-05-18
 
 ---
 
@@ -20,7 +20,7 @@ It is **not** a server, not a daemon, not a hosted service. Nothing in this repo
 - `skills/tres-report-analyzer/scripts/analyze_report.py` — parses uploaded XLSX reports locally on the user's machine
 - `hooks/hooks.json` — hook event wiring (PostToolUse, PostToolUseFailure, Stop)
 - `scripts/track.sh` — thin bash wrapper that fire-and-forgets telemetry events
-- `scripts/telemetry.py` — telemetry logic: identity caching and event dispatch to the TRES backend
+- `scripts/telemetry.py` — telemetry logic: identity caching and direct event dispatch to Mixpanel's HTTPS ingestion API
 - `LICENSE`, `README.md`, `CHANGELOG.md`
 
 There is **no compiled code, no bundled binaries, no transitive dependencies installed by the plugin itself**. All scripts use only the user's existing Python 3 and bash environments.
@@ -73,7 +73,7 @@ There is **no compiled code, no bundled binaries, no transitive dependencies ins
 | Claude Code ↔ Anthropic API | HTTPS | user's Anthropic account |
 | Claude Code ↔ TRES MCP server | HTTPS | OAuth 2.0 (browser login flow, managed by Claude Desktop) |
 | TRES MCP ↔ TRES backend | internal | TRES-managed (out of scope of this repo) |
-| Plugin hooks ↔ TRES telemetry endpoint | HTTPS POST | unauthenticated; session_id validated server-side |
+| Plugin hooks ↔ Mixpanel ingestion (`api-eu.mixpanel.com`) | HTTPS POST | Mixpanel project token (public, write-only per Mixpanel's design) |
 
 ### Components owned by this repo
 
@@ -112,7 +112,7 @@ All skills follow the same shape:
 
 ## 4.1 Telemetry data flow
 
-Starting in v1.9.0, the plugin ships three hook-related files that send anonymized usage telemetry to the TRES backend.
+The plugin ships three hook-related files (`hooks/hooks.json`, `scripts/track.sh`, `scripts/telemetry.py`) that send anonymized usage telemetry **directly** to Mixpanel — no TRES-hosted intermediary.
 
 ### What is sent
 
@@ -123,11 +123,13 @@ Starting in v1.9.0, the plugin ships three hook-related files that send anonymiz
 | `properties.tool_name` | `execute` | For `mcp_tool_call` only; stripped of MCP namespace |
 | `properties.success` | `true` / `false` | For `mcp_tool_call` only |
 | `properties.session_id` | `ses_abc123` | Claude Code session identifier |
-| `properties.org_id` | `42` | From `get_viewer` response; cached locally |
-| `properties.org_name` | `Acme Labs` | From `get_viewer` response; cached locally |
-| `properties.email` | `user@acme.com` | From `get_viewer` response; cached locally |
-| `properties.plugin_version` | `1.9.0` | Hardcoded in `telemetry.py` |
-| `properties.timestamp` | `2026-05-17T14:30:00Z` | UTC ISO 8601 |
+| `properties.$org_id` | `42` | From `get_viewer` response; cached locally |
+| `properties.$org_name` | `Acme Labs` | From `get_viewer` response; cached locally |
+| `properties.$email` | `user@acme.com` | From `get_viewer` response; cached locally |
+| `properties.plugin_version` | `1.10.0` | Hardcoded in `telemetry.py` |
+| `properties.time` | `1779028200` (Unix epoch) | Built from local UTC clock at event time |
+| `properties.distinct_id` | `42:user@acme.com` | Composed locally; falls back to `session_id` |
+| `properties.token` | Mixpanel project token | Public client-side identifier (see "Token visibility") |
 
 ### What is NOT sent
 
@@ -140,28 +142,40 @@ Starting in v1.9.0, the plugin ships three hook-related files that send anonymiz
 ```
 User's machine
   │
-  ├── Hook fires (PostToolUse / Stop)
+  ├── Hook fires (PostToolUse / PostToolUseFailure / Stop)
   ├── scripts/track.sh — reads event JSON, backgrounds scripts/telemetry.py
   ├── scripts/telemetry.py:
-  │     ├── Reads ${CLAUDE_PLUGIN_DATA}/identity.json (org_id, org_name, email)
+  │     ├── Reads ${CLAUDE_PLUGIN_DATA}/identity.json (org_id, org_name, email,
+  │     │     engaged_key)
   │     ├── Lazy identity caching: on first get_viewer response, writes identity.json
   │     ├── On switch_organization: deletes identity.json (refreshed on next get_viewer)
-  │     └── POSTs payload to https://ai.tres.finance/telemetry (5s timeout, fire-and-forget)
+  │     ├── Builds Mixpanel /track payload locally
+  │     ├── POSTs to https://api-eu.mixpanel.com/track  (5s timeout, fire-and-forget)
+  │     └── If identity resolved AND People profile not yet upserted this
+  │           plugin version: POSTs People profile to
+  │           https://api-eu.mixpanel.com/engage  (5s timeout, fire-and-forget)
   │
-  └── TRES backend receives event → forwards to Mixpanel via server-side token
+  └── Mixpanel ingests, indexes, and (per Mixpanel's own infrastructure) deletes
+      events after the project's configured retention window
 ```
+
+### Token visibility
+
+The Mixpanel project token is embedded in `scripts/telemetry.py`. Per [Mixpanel's official documentation](https://developer.mixpanel.com/reference/project-token), this is **not a secret value** — project tokens are designed to be publicly exposed in client-side implementations, are write-only, and cannot read data or modify the project. They are functionally equivalent to a Google Analytics tracking ID or a Sentry DSN. This matches the pattern used by Mixpanel's own client SDKs and by the TRES web dashboard (which has shipped this same token client-side for years).
+
+The token can be overridden or disabled at runtime via the `TRES_MIXPANEL_TOKEN` environment variable (empty string disables telemetry).
 
 ### Identity cache
 
-Cached at `${CLAUDE_PLUGIN_DATA}/identity.json` (resolves to `~/.claude/plugins/data/<plugin-id>/identity.json`). Contains: `org_id`, `org_name`, `email`. This file has the same sensitivity level as the OAuth token managed by Claude Desktop. It is user-readable only by default OS umask.
+Cached at `${CLAUDE_PLUGIN_DATA}/identity.json` (resolves to `~/.claude/plugins/data/<plugin-id>/identity.json`). Contains: `org_id`, `org_name`, `email`, and a dedup key (`engaged_key`) used to ensure the People profile is only upserted once per plugin install per version. Same sensitivity level as the OAuth token managed by Claude Desktop. User-readable only by default OS umask.
 
 ### Failure mode
 
-All telemetry failures are silent. `track.sh` always exits 0. `telemetry.py` catches all exceptions and exits 0. A network failure or an unreachable telemetry endpoint never surfaces to the user or blocks a skill.
+All telemetry failures are silent. `track.sh` always exits 0. `telemetry.py` catches all exceptions and exits 0. A network failure, Mixpanel outage, or unreachable endpoint never surfaces to the user or blocks a skill.
 
-### Telemetry endpoint authentication
+### No server-side dependency
 
-The `POST /telemetry` endpoint (TRES-hosted, not in this repo) accepts unauthenticated POSTs. Server-side validation uses the `session_id` field to correlate events with known MCP sessions. The Mixpanel project token is stored server-side only — it is never in the plugin.
+Because the plugin posts directly to Mixpanel, telemetry has zero dependency on the availability of TRES backend infrastructure. The previous v1.9.x architecture (which proxied through `https://ai.tres.finance/telemetry`) was retired in v1.10.0 — see CHANGELOG for the rationale.
 
 ---
 
@@ -185,8 +199,8 @@ In-scope threats (this repo):
 
 - **Secret leakage in repo** — checked: no secrets present, `.gitignore` covers logs and `.DS_Store`. Token is `sensitive: true` in `plugin.json` and never stored in the repo.
 - **Skill-prompt injection / unsafe instructions** — the skill markdown files instruct Claude to ask for confirmation before any mutation. Reviewers should validate that every mutating skill has an explicit confirmation gate (search for `setManualFiatValue`, `syncSpecificTransactions`, `upsertRule`, `createSubTransactionRollupRules`, `setCustomAccountName` in `skills/`).
-- **Malicious or buggy local scripts** — three scripts ship: `skills/tres-report-analyzer/scripts/analyze_report.py` (no network, no eval), `scripts/track.sh` (bash wrapper, exits 0 always), and `scripts/telemetry.py` (POSTs minimal metadata to TRES backend via HTTPS, no eval, no arbitrary command execution). All network calls use `urllib.request` with a 5-second timeout. No subprocess spawning beyond the backgrounded Python call in `track.sh`.
-- **Telemetry data leakage** — only tool/skill names and org identity metadata are sent; no financial data, no query content. The endpoint is on the same domain as the MCP server. Communication is HTTPS only.
+- **Malicious or buggy local scripts** — three scripts ship: `skills/tres-report-analyzer/scripts/analyze_report.py` (no network, no eval), `scripts/track.sh` (bash wrapper, exits 0 always), and `scripts/telemetry.py` (POSTs minimal metadata directly to Mixpanel's HTTPS ingestion API, no eval, no arbitrary command execution). All network calls use `urllib.request` with a 5-second timeout. No subprocess spawning beyond the backgrounded Python call in `track.sh`.
+- **Telemetry data leakage** — only tool/skill names and org identity metadata are sent to Mixpanel; no financial data, no query content. Communication is HTTPS only. Mixpanel project token is a public client-side identifier per the vendor's threat model and cannot be used to read data.
 - **Identity cache on disk** — `${CLAUDE_PLUGIN_DATA}/identity.json` contains org_id, org_name, and email. Same sensitivity as the OAuth token managed by Claude Desktop. No additional hardening is applied beyond default OS file permissions.
 - **Malicious MCP endpoint substitution** — `.mcp.json` pins `https://ai.tres.finance/mcp` (HTTPS). A malicious fork could change this; standard supply-chain hygiene applies (signed releases / marketplace verification by Anthropic).
 - **MCP endpoint TLS integrity** — The MCP endpoint uses standard PKI (HTTPS). Certificate pinning is not currently supported by Claude Code for MCP connections. Trust relies on standard PKI + Anthropic marketplace verification + the user's local OS trust store. This is acceptable for a marketplace plugin; no custom CA or cert SHA pinning is available.
