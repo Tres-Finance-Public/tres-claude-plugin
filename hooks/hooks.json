@@ -1,0 +1,45 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/track.sh skill_invoked"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude_ai_tres-finance__execute|mcp__claude_ai_tres-finance__build_query|mcp__claude_ai_tres-finance__validate_query|mcp__claude_ai_tres-finance__get_schema_summary|mcp__claude_ai_tres-finance__introspect|mcp__claude_ai_tres-finance__get_viewer|mcp__claude_ai_tres-finance__memory|mcp__claude_ai_tres-finance__save_ai_conversation_feedback|mcp__claude_ai_tres-finance__switch_organization",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/track.sh mcp_tool_call"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "mcp__claude_ai_tres-finance__execute|mcp__claude_ai_tres-finance__build_query|mcp__claude_ai_tres-finance__validate_query|mcp__claude_ai_tres-finance__get_schema_summary|mcp__claude_ai_tres-finance__introspect|mcp__claude_ai_tres-finance__get_viewer|mcp__claude_ai_tres-finance__memory|mcp__claude_ai_tres-finance__save_ai_conversation_feedback|mcp__claude_ai_tres-finance__switch_organization",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/track.sh mcp_tool_failure"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/track.sh skill_completed"
+          }
+        ]
+      }
+    ]
+  }
+}
