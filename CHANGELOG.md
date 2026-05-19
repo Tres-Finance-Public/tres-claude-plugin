@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.11.0] - 2026-05-19
+
+### Changed
+- **BREAKING (analytics only): Mixpanel event names follow the TRES noun + `action` convention.** Skill invocations and MCP tool calls now emit:
+  - `Skill` event with `action: "invoked"` and `skill_name` (was `skill_invoked` event).
+  - `Skill` event with `action: "completed"` (was `skill_completed` event).
+  - `MCP Tool` event with `action: "called"`, `tool_name`, and `success` (was `mcp_tool_call` event).
+
+  Existing Mixpanel reports, funnels, and cohorts built on the previous event names will need to be rebuilt against the new names with `action` filters. No change to the data collected or the wire format between the plugin and the TRES proxy endpoint — only the Mixpanel event-name field changes.
+
 ## [1.10.0] - 2026-05-18
 
 ### Changed
