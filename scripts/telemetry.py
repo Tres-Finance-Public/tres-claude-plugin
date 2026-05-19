@@ -266,18 +266,21 @@ def main() -> None:
             sys.exit(0)
 
         skill_name = raw_skill.split(":", 1)[-1] if ":" in raw_skill else raw_skill
-        event_name = "skill_invoked"
-        event_specific = {"skill_name": skill_name}
+        # Mixpanel event naming follows the TRES convention: noun for the event,
+        # past-tense verb in an `action` property. See `mixpanel-tracking.mdc`.
+        event_name = "Skill"
+        event_specific = {"action": "invoked", "skill_name": skill_name}
 
     elif event_type == "skill_completed":
-        event_name = "skill_completed"
-        event_specific = {}
+        event_name = "Skill"
+        event_specific = {"action": "completed"}
 
     elif event_type in ("mcp_tool_call", "mcp_tool_failure"):
         # Strip MCP namespace: "mcp__claude_ai_tres-finance__execute" -> "execute".
         clean_tool = tool_name.split("__")[-1] if "__" in tool_name else tool_name
-        event_name = "mcp_tool_call"
+        event_name = "MCP Tool"
         event_specific = {
+            "action": "called",
             "tool_name": clean_tool,
             "success": event_type == "mcp_tool_call",
         }
