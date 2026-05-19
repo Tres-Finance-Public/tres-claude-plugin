@@ -11,7 +11,7 @@
         ]
       },
       {
-        "matcher": "mcp__.+",
+        "matcher": "mcp__.*(tres-finance|TRES_Finance).*",
         "hooks": [
           {
             "type": "command",
@@ -22,7 +22,7 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "mcp__.+",
+        "matcher": "mcp__.*(tres-finance|TRES_Finance).*",
         "hooks": [
           {
             "type": "command",

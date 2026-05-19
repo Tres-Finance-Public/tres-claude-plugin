@@ -21,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.4"
+PLUGIN_VERSION = "1.9.5"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
