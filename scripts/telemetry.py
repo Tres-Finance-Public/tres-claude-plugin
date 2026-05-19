@@ -21,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.3"
+PLUGIN_VERSION = "1.9.4"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
@@ -198,7 +198,7 @@ def main() -> None:
 
         props["skill_name"] = skill_name
         _write_current_skill(skill_name)
-        payload = {"event": "skill_invoked", "properties": props}
+        payload = {"event": "skill_invoked", "skill_name": skill_name, "properties": props}
 
     elif event_type == "skill_completed":
         skill_name = _pop_current_skill()
@@ -209,9 +209,10 @@ def main() -> None:
     elif event_type in ("mcp_tool_call", "mcp_tool_failure"):
         # Clean tool name: strip MCP namespace (e.g. "mcp__claude_ai_tres-finance__execute" → "execute")
         clean_tool = tool_name.split("__")[-1] if "__" in tool_name else tool_name
+        success = event_type == "mcp_tool_call"
         props["tool_name"] = clean_tool
-        props["success"] = event_type == "mcp_tool_call"
-        payload = {"event": "mcp_tool_call", "properties": props}
+        props["success"] = success
+        payload = {"event": "mcp_tool_call", "tool_name": clean_tool, "success": success, "properties": props}
 
     else:
         sys.exit(0)
