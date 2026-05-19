@@ -11,6 +11,7 @@
         ]
       },
       {
+        "matcher": "mcp__.+",
         "hooks": [
           {
             "type": "command",
@@ -21,6 +22,7 @@
     ],
     "PostToolUseFailure": [
       {
+        "matcher": "mcp__.+",
         "hooks": [
           {
             "type": "command",

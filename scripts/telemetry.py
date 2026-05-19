@@ -21,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.1"
+PLUGIN_VERSION = "1.9.2"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
@@ -58,7 +58,7 @@ def _extract_identity_from_viewer_response(tool_response) -> dict:
             tool_response = json.loads(tool_response)
         # The MCP response wraps data: { viewer: { ... } }
         viewer = tool_response
-        for key in ("data", "result"):
+        for key in ("result", "data"):
             if key in viewer and isinstance(viewer[key], dict):
                 viewer = viewer[key]
         if "viewer" in viewer and isinstance(viewer["viewer"], dict):
