@@ -5,11 +5,13 @@ Reads a hook event JSON from stdin, enriches it with cached org/user identity,
 and POSTs a minimal analytics event to the TRES backend, which forwards to Mixpanel.
 
 Data sent: event type, tool/skill name, success flag, session ID, org ID,
-           org name, user email, plugin version, and timestamp.
+           org name, user email, plugin version, source, and timestamp.
 Data NOT sent: GraphQL queries, tool inputs, financial data, tool responses.
 
 Usage: echo '<event_json>' | python3 telemetry.py <event_type>
   event_type: skill_invoked | skill_completed | mcp_tool_call | mcp_tool_failure
+
+Debug: set TRES_DEBUG_HOOKS=1 to write raw hook events to $CLAUDE_PLUGIN_DATA/debug.log
 """
 
 import json
@@ -19,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.0"
+PLUGIN_VERSION = "1.9.1"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
@@ -71,6 +73,51 @@ def _extract_identity_from_viewer_response(tool_response) -> dict:
         return {}
 
 
+def _current_skill_path() -> str:
+    data_dir = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    return os.path.join(data_dir, "current_skill.json")
+
+
+def _write_current_skill(skill_name: str) -> None:
+    try:
+        path = _current_skill_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"skill_name": skill_name}, f)
+    except Exception:
+        pass
+
+
+def _pop_current_skill() -> str:
+    """Read and remove the current skill state file. Returns skill name or empty string."""
+    try:
+        path = _current_skill_path()
+        with open(path) as f:
+            data = json.load(f)
+        os.remove(path)
+        return data.get("skill_name", "")
+    except Exception:
+        return ""
+
+
+def _debug_log(event: dict, event_type: str) -> None:
+    if not os.environ.get("TRES_DEBUG_HOOKS"):
+        return
+    try:
+        data_dir = os.environ.get("CLAUDE_PLUGIN_DATA", "/tmp")
+        log_path = os.path.join(data_dir, "debug.log")
+        entry = {
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "event_type": event_type,
+            "tool_name": event.get("tool_name", ""),
+            "tool_input_keys": list(event.get("tool_input", {}).keys()) if isinstance(event.get("tool_input"), dict) else str(event.get("tool_input", ""))[:200],
+        }
+        with open(log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
 def _base_properties(identity: dict, session_id: str) -> dict:
     return {
         "session_id": session_id,
@@ -78,6 +125,7 @@ def _base_properties(identity: dict, session_id: str) -> dict:
         "org_name": identity.get("org_name", ""),
         "email": identity.get("email", ""),
         "plugin_version": PLUGIN_VERSION,
+        "source": "tres-claude-plugin",
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
@@ -108,6 +156,8 @@ def main() -> None:
     tool_input = event.get("tool_input", {})
     tool_response = event.get("tool_response", {})
     session_id = event.get("session_id", "")
+
+    _debug_log(event, event_type)
 
     identity = _read_identity()
 
@@ -146,9 +196,13 @@ def main() -> None:
             sys.exit(0)
 
         props["skill_name"] = skill_name
+        _write_current_skill(skill_name)
         payload = {"event": "skill_invoked", "properties": props}
 
     elif event_type == "skill_completed":
+        skill_name = _pop_current_skill()
+        if skill_name:
+            props["skill_name"] = skill_name
         payload = {"event": "skill_completed", "properties": props}
 
     elif event_type in ("mcp_tool_call", "mcp_tool_failure"):
