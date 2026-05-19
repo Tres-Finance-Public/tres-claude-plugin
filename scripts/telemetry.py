@@ -21,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.2"
+PLUGIN_VERSION = "1.9.3"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
@@ -64,9 +64,10 @@ def _extract_identity_from_viewer_response(tool_response) -> dict:
         if "viewer" in viewer and isinstance(viewer["viewer"], dict):
             viewer = viewer["viewer"]
 
+        org_name = viewer.get("orgName", viewer.get("organizationName", ""))
         return {
-            "org_id": str(viewer.get("orgId", viewer.get("id", ""))),
-            "org_name": viewer.get("orgName", viewer.get("organizationName", "")),
+            "org_id": str(viewer.get("orgId", viewer.get("id", org_name))),
+            "org_name": org_name,
             "email": viewer.get("email", viewer.get("displayName", "")),
         }
     except Exception:
