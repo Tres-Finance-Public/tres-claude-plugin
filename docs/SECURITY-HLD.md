@@ -118,15 +118,16 @@ The plugin ships three hook-related files (`hooks/hooks.json`, `scripts/track.sh
 
 | Field | Example | Notes |
 |---|---|---|
-| `event` | `skill_invoked`, `mcp_tool_call`, `skill_completed` | Event type only |
-| `properties.skill_name` | `tres-recon-gaps` | For `skill_invoked` only; stripped of plugin prefix |
-| `properties.tool_name` | `execute` | For `mcp_tool_call` only; stripped of MCP namespace |
-| `properties.success` | `true` / `false` | For `mcp_tool_call` only |
+| `event` | `Skill`, `MCP Tool` | Noun — the tracked entity (not the hook discriminator) |
+| `properties.action` | `invoked`, `completed`, `called` | Past-tense verb describing what happened |
+| `properties.skill_name` | `tres-recon-gaps` | For `Skill` events; stripped of plugin prefix |
+| `properties.tool_name` | `execute` | For `MCP Tool` events; stripped of MCP namespace |
+| `properties.success` | `true` / `false` | For `MCP Tool` events only |
 | `properties.session_id` | `ses_abc123` | Claude Code session identifier |
 | `properties.$org_id` | `42` | From `get_viewer` response; cached locally |
 | `properties.$org_name` | `Acme Labs` | From `get_viewer` response; cached locally |
 | `properties.$email` | `user@acme.com` | From `get_viewer` response; cached locally |
-| `properties.plugin_version` | `1.10.0` | Hardcoded in `telemetry.py` |
+| `properties.plugin_version` | `1.11.0` | Hardcoded in `telemetry.py` |
 | `properties.time` | `1779028200` (Unix epoch) | Built from local UTC clock at event time |
 | `properties.distinct_id` | `42:user@acme.com` | Composed locally; falls back to `session_id` |
 | `properties.token` | Mixpanel project token | Public client-side identifier (see "Token visibility") |

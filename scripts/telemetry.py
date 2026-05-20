@@ -52,7 +52,20 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.10.0"
+PLUGIN_VERSION = "1.11.0"
+
+# Mixpanel event naming follows the TRES convention: noun for the event name,
+# past-tense verb in an `action` property. See `.cursor/rules/mixpanel-tracking.mdc`.
+PLUGIN_MIXPANEL_EVENTS = {
+    "skill": "Skill",
+    "mcp_tool": "MCP Tool",
+}
+
+PLUGIN_MIXPANEL_ACTIONS = {
+    "invoked": "invoked",
+    "completed": "completed",
+    "called": "called",
+}
 
 # Public Mixpanel project token (EU residency, write-only). See module
 # docstring for why this is not a secret. Override for testing via
@@ -122,6 +135,33 @@ def _build_distinct_id(org_id: str, email: str, session_id: str) -> str:
     if org_id and email:
         return f"{org_id}:{email}"
     return session_id or "anonymous"
+
+
+def _current_skill_path() -> str:
+    data_dir = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    return os.path.join(data_dir, "current_skill.json")
+
+
+def _write_current_skill(skill_name: str) -> None:
+    try:
+        path = _current_skill_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"skill_name": skill_name}, f)
+    except Exception:
+        pass
+
+
+def _pop_current_skill() -> str:
+    """Read and remove the current skill state file. Returns skill name or empty string."""
+    try:
+        path = _current_skill_path()
+        with open(path) as f:
+            data = json.load(f)
+        os.remove(path)
+        return data.get("skill_name", "")
+    except Exception:
+        return ""
 
 
 def _iso_to_unix(iso_ts: str) -> int:
@@ -266,21 +306,26 @@ def main() -> None:
             sys.exit(0)
 
         skill_name = raw_skill.split(":", 1)[-1] if ":" in raw_skill else raw_skill
-        # Mixpanel event naming follows the TRES convention: noun for the event,
-        # past-tense verb in an `action` property. See `mixpanel-tracking.mdc`.
-        event_name = "Skill"
-        event_specific = {"action": "invoked", "skill_name": skill_name}
+        _write_current_skill(skill_name)
+        event_name = PLUGIN_MIXPANEL_EVENTS["skill"]
+        event_specific = {
+            "action": PLUGIN_MIXPANEL_ACTIONS["invoked"],
+            "skill_name": skill_name,
+        }
 
     elif event_type == "skill_completed":
-        event_name = "Skill"
-        event_specific = {"action": "completed"}
+        event_name = PLUGIN_MIXPANEL_EVENTS["skill"]
+        event_specific = {"action": PLUGIN_MIXPANEL_ACTIONS["completed"]}
+        skill_name = _pop_current_skill()
+        if skill_name:
+            event_specific["skill_name"] = skill_name
 
     elif event_type in ("mcp_tool_call", "mcp_tool_failure"):
         # Strip MCP namespace: "mcp__claude_ai_tres-finance__execute" -> "execute".
         clean_tool = tool_name.split("__")[-1] if "__" in tool_name else tool_name
-        event_name = "MCP Tool"
+        event_name = PLUGIN_MIXPANEL_EVENTS["mcp_tool"]
         event_specific = {
-            "action": "called",
+            "action": PLUGIN_MIXPANEL_ACTIONS["called"],
             "tool_name": clean_tool,
             "success": event_type == "mcp_tool_call",
         }

@@ -1,0 +1,26 @@
+## Mixpanel Tracking
+
+- Plugin telemetry is sent from `scripts/telemetry.py` directly to Mixpanel EU (`api-eu.mixpanel.com`).
+- Hook `event_type` values (`skill_invoked`, `skill_completed`, `mcp_tool_call`) are **wire-format discriminators only** — they are not Mixpanel event names.
+- Define Mixpanel event names and repeated property values as module-level constants in `scripts/telemetry.py` (`PLUGIN_MIXPANEL_EVENTS`, `PLUGIN_MIXPANEL_ACTIONS`). Do not scatter string literals across the telemetry code.
+- **Event name:** a noun — the entity or feature area (e.g. `Skill`, `MCP Tool`, `Wallet`, `Filter`).
+- **`action` property:** a required, past-tense verb describing what happened (e.g. `invoked`, `completed`, `called`, `created`, `opened`).
+- **Context properties:** IDs and slice dimensions (`skill_name`, `tool_name`, `success`, etc.).
+
+```python
+# ✅ GOOD — noun event name + action + context
+event_name = PLUGIN_MIXPANEL_EVENTS["skill"]
+event_specific = {
+    "action": PLUGIN_MIXPANEL_ACTIONS["invoked"],
+    "skill_name": skill_name,
+}
+
+# ❌ BAD — verb baked into the Mixpanel event name
+payload = {"event": "skill_invoked", "skill_name": skill_name}
+
+# ❌ BAD — missing action
+event_specific = {"skill_name": skill_name}
+```
+
+- When adding new telemetry, mirror the TRES dashboard convention in `platform/dashboard/.cursor/rules/mixpanel-tracking.mdc`.
+- Never log GraphQL queries, tool inputs, financial data, or tool responses.

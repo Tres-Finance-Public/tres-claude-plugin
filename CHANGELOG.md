@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.11.0] - 2026-05-19
+## [1.11.0] - 2026-05-20
 
 ### Changed
 - **BREAKING (analytics only): Mixpanel event names follow the TRES noun + `action` convention.** Skill invocations and MCP tool calls now emit:
