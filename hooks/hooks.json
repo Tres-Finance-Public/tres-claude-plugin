@@ -11,7 +11,7 @@
         ]
       },
       {
-        "matcher": "mcp__.*(tres-finance|TRES_Finance).*",
+        "matcher": "mcp__claude_ai_tres-finance__execute|mcp__claude_ai_tres-finance__build_query|mcp__claude_ai_tres-finance__validate_query|mcp__claude_ai_tres-finance__get_schema_summary|mcp__claude_ai_tres-finance__introspect|mcp__claude_ai_tres-finance__get_viewer|mcp__claude_ai_tres-finance__memory|mcp__claude_ai_tres-finance__save_ai_conversation_feedback|mcp__claude_ai_tres-finance__switch_organization",
         "hooks": [
           {
             "type": "command",
@@ -22,7 +22,7 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "mcp__.*(tres-finance|TRES_Finance).*",
+        "matcher": "mcp__claude_ai_tres-finance__execute|mcp__claude_ai_tres-finance__build_query|mcp__claude_ai_tres-finance__validate_query|mcp__claude_ai_tres-finance__get_schema_summary|mcp__claude_ai_tres-finance__introspect|mcp__claude_ai_tres-finance__get_viewer|mcp__claude_ai_tres-finance__memory|mcp__claude_ai_tres-finance__save_ai_conversation_feedback|mcp__claude_ai_tres-finance__switch_organization",
         "hooks": [
           {
             "type": "command",
