@@ -11,7 +11,10 @@ Data NOT sent: GraphQL queries, tool inputs, financial data, tool responses.
 Usage: echo '<event_json>' | python3 telemetry.py <event_type>
   event_type: skill_invoked | skill_completed | mcp_tool_call | mcp_tool_failure
 
-Debug: set TRES_DEBUG_HOOKS=1 to write raw hook events to $CLAUDE_PLUGIN_DATA/debug.log
+Diagnostics:
+- $CLAUDE_PLUGIN_DATA/telemetry.log: append-only one-line outcome per invocation
+  (always on — needed because the wrapping shell hook is fully muted).
+- $CLAUDE_PLUGIN_DATA/debug.log: raw inbound hook events. Opt-in via TRES_DEBUG_HOOKS=1.
 """
 
 import json
@@ -21,11 +24,13 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PLUGIN_VERSION = "1.9.5"
+PLUGIN_VERSION = "1.9.6"
 # Endpoint can be overridden via the TRES_TELEMETRY_URL environment variable.
 # Defaults to the production TRES backend (placeholder until the endpoint is live).
 TELEMETRY_URL = os.environ.get("TRES_TELEMETRY_URL", "https://ai.tres.finance/telemetry")
 TIMEOUT_SECONDS = 5
+# Cap the diagnostic log so a long-lived install doesn't grow unbounded.
+_OUTCOME_LOG_MAX_BYTES = 256 * 1024
 
 
 def _identity_path() -> str:
@@ -119,6 +124,58 @@ def _debug_log(event: dict, event_type: str) -> None:
         pass
 
 
+def _outcome_log(entry: dict) -> None:
+    """Append one JSON line summarizing this invocation's outcome.
+
+    Always on. Without this, the hook + script chain is fully muted
+    (`2>/dev/null`, bare except, fire-and-forget background), so users
+    have no way to tell whether telemetry is working.
+    """
+    try:
+        data_dir = os.environ.get("CLAUDE_PLUGIN_DATA", "/tmp")
+        os.makedirs(data_dir, exist_ok=True)
+        log_path = os.path.join(data_dir, "telemetry.log")
+        if os.path.exists(log_path) and os.path.getsize(log_path) > _OUTCOME_LOG_MAX_BYTES:
+            try:
+                os.replace(log_path, log_path + ".1")
+            except Exception:
+                pass
+        entry.setdefault(
+            "ts", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        )
+        entry.setdefault("plugin_version", PLUGIN_VERSION)
+        with open(log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
+def _tool_call_succeeded(tool_response) -> bool:
+    """Detect MCP "soft errors" — tools that catch their own exceptions
+    and return an error-shaped response. From Claude Code's perspective
+    such calls are PostToolUse (success), so without this inspection the
+    ``success`` flag in Mixpanel is always ``true`` and meaningless.
+
+    Treat as failure iff the response is a dict with a top-level ``error``
+    field or matches the bff-mcp ``ErrorResponse`` shape
+    (``{"status": "error", ...}``). Everything else — including missing
+    response, non-dict response, parse failure — is treated as success
+    so the existing happy-path behavior is preserved.
+    """
+    try:
+        if isinstance(tool_response, str):
+            tool_response = json.loads(tool_response)
+        if not isinstance(tool_response, dict):
+            return True
+        if "error" in tool_response and tool_response.get("error"):
+            return False
+        if tool_response.get("status") == "error":
+            return False
+        return True
+    except Exception:
+        return True
+
+
 def _base_properties(identity: dict, session_id: str) -> dict:
     return {
         "session_id": session_id,
@@ -131,18 +188,30 @@ def _base_properties(identity: dict, session_id: str) -> dict:
     }
 
 
-def _post(payload: dict) -> None:
+def _post(payload: dict) -> dict:
+    """POST the payload and return a structured outcome for the outcome log.
+
+    Never raises. The returned dict always has at least an ``outcome`` key
+    (``"ok"`` | ``"http_error"`` | ``"transport_error"`` | ``"encode_error"``).
+    """
     try:
         data = json.dumps(payload).encode()
-        req = urllib.request.Request(
-            TELEMETRY_URL,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS)
-    except Exception:
-        pass
+    except Exception as exc:
+        return {"outcome": "encode_error", "error_class": type(exc).__name__}
+
+    req = urllib.request.Request(
+        TELEMETRY_URL,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+            return {"outcome": "ok", "http_status": response.status}
+    except urllib.error.HTTPError as exc:
+        return {"outcome": "http_error", "http_status": exc.code}
+    except Exception as exc:
+        return {"outcome": "transport_error", "error_class": type(exc).__name__}
 
 
 def main() -> None:
@@ -209,7 +278,10 @@ def main() -> None:
     elif event_type in ("mcp_tool_call", "mcp_tool_failure"):
         # Clean tool name: strip MCP namespace (e.g. "mcp__claude_ai_tres-finance__execute" → "execute")
         clean_tool = tool_name.split("__")[-1] if "__" in tool_name else tool_name
-        success = event_type == "mcp_tool_call"
+        # PostToolUse (success) fires for tools that catch their own exception
+        # and return an error-shaped response. Inspect the response so the
+        # success flag reflects what actually happened on the server side.
+        success = event_type == "mcp_tool_call" and _tool_call_succeeded(tool_response)
         props["tool_name"] = clean_tool
         props["success"] = success
         payload = {"event": "mcp_tool_call", "tool_name": clean_tool, "success": success, "properties": props}
@@ -217,7 +289,16 @@ def main() -> None:
     else:
         sys.exit(0)
 
-    _post(payload)
+    result = _post(payload)
+    _outcome_log({
+        "event_type": event_type,
+        "event": payload["event"],
+        "tool_name": payload.get("tool_name") or payload.get("skill_name") or "",
+        "success": payload.get("success"),
+        "session_id": props.get("session_id", ""),
+        "org_id": props.get("org_id", ""),
+        **result,
+    })
 
 
 if __name__ == "__main__":
