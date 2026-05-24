@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.6] - 2026-05-24
+
+### Fixed
+- **Telemetry observability:** `scripts/telemetry.py` now appends a one-line JSON outcome (`ok` / `http_error` / `transport_error` / `encode_error`) to `$CLAUDE_PLUGIN_DATA/telemetry.log` on every invocation. The wrapping hook chain is fully muted (`2>/dev/null`, bare excepts, fire-and-forget background), so users previously had no way to tell whether telemetry was actually reaching the proxy. The log is size-capped at 256 KiB with one rotation.
+- **MCP soft-errors no longer reported as successes:** the bff-mcp tool handlers catch their own exceptions and return error-shaped responses, which Claude Code surfaces via `PostToolUse` (success). `telemetry.py` now inspects `tool_response` and flips `success=false` when the response is shaped like an `ErrorResponse` (top-level `error`, or `status: "error"`). Previously every MCP tool call recorded `success=true`.
+- **Backgrounded telemetry can no longer be reaped by Claude Code:** `track.sh` now detaches the python child via `setsid` (preferred), `nohup` (fallback), or `disown` (last resort), so the HTTP POST has time to complete even if Claude Code cleans up the hook's process group.
+
+### Changed
+- Bumped `.claude-plugin/marketplace.json` from `1.9.0` to `1.9.6` so marketplace installs no longer pin to a stale matcher (was the indirect cause of the regression PR #11 fixed).
+
 ## [1.9.0] - 2026-05-17
 
 ### Added
