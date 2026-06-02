@@ -26,6 +26,7 @@ tres-finance-plugin/
 │   ├── tres-data-collection-commit/   # Trigger on-chain data collection (Commit)
 │   ├── tres-cost-basis/               # Cost basis strategy, calculation, issues, exports
 │   ├── tres-settings-management/      # Manage org & platform settings via MCP
+│   ├── tres-upload-tx-header-validation/ # Bulk TX CSV header validation
 │   └── tres-request-skill-update/     # Submit plugin feedback via MCP
 ├── .mcp.json              # TRES Finance MCP connector
 ├── CHANGELOG.md
@@ -82,6 +83,9 @@ Manage cost basis end-to-end via the TRES MCP: strategy (FIFO, LIFO, AVG, etc.),
 
 ### `tres-settings-management`
 View and modify Organization Settings and Platform Settings via the TRES MCP GraphQL API — feature flags, balance diff, commit strategy, cost basis strategy, ERP, pricing, sync boundaries, enable/disable platforms, and other config.
+
+### `tres-upload-tx-header-validation`
+Validate or fix the header row for TRES bulk manual transaction / sub-transaction CSV uploads. Documents the exact display-name columns (e.g. `Organizational Wallet`, not `wallet_address`) and column order — use when uploads fail with missing required column errors.
 
 ### Legacy alias: `wallets-upload-v3` → `tres-wallets-upload`
 Older docs may refer to `wallets-upload-v3`. The current skill ID is `tres-wallets-upload`.

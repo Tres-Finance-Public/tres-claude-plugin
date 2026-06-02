@@ -106,6 +106,7 @@ or about the plugin overall, note that.
 | `tres-onboarding` | Full entity onboarding (orchestrates sub-skills) |
 | `tres-settings-management` | Org and platform settings |
 | `tres-wallets-upload` | Wallet onboarding |
+| `tres-upload-tx-header-validation` | Bulk transaction CSV header naming validation |
 | `tres-request-skill-update` | This feedback skill |
 
 > **Maintainer note**: update this table when new skills are added to the plugin.

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.7] - 2026-06-02
+
+### Added
+- `tres-upload-tx-header-validation` skill — exact display-name header row for TRES bulk transaction CSV uploads; prevents snake_case / wrong column name rejections
+
 ## [1.9.6] - 2026-05-24
 
 ### Fixed
