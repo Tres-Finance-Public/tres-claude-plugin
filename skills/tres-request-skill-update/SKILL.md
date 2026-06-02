@@ -92,7 +92,7 @@ or about the plugin overall, note that.
 
 | Skill | Description |
 |---|---|
-| `asc845-swap-reprice-skill` | ASC 845 swap repricing to zero clearing account residuals |
+| `tres-asc845-swap-reprice-skill` | ASC 845 swap repricing to zero clearing account residuals |
 | `tres-explorer-tx-to-ledger` | Add explorer TX to the TRES ledger |
 | `tres-tx-story` | TX flow diagram and explanation |
 | `tres-recon-gaps` | Reconciliation gap resolution |

@@ -19,7 +19,7 @@ Workflow for Claude:
     5. Execute mutations from the plan after user confirmation
 
 Usage:
-    cd "${CLAUDE_PLUGIN_ROOT}/skills/asc845-swap-reprice-skill/scripts" && \
+    cd "${CLAUDE_PLUGIN_ROOT}/skills/tres-asc845-swap-reprice-skill/scripts" && \
     python3 orchestrate_reprice.py \
         --input /path/to/swap_reprice_input.json \
         --account-name "Swaps Clearing Account" \

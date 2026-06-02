@@ -1,5 +1,5 @@
 ---
-name: asc845-swap-reprice-skill
+name: tres-asc845-swap-reprice-skill
 description: >
   Reprice swap transaction legs under ASC 845 (Nonmonetary Transactions) to ensure clearing accounts
   net to zero. Use this skill whenever the user wants to: reprice swaps, fix clearing account residuals,
@@ -84,7 +84,7 @@ Paginate in batches of 50 (to avoid timeouts). Save the combined results to a JS
 From the skill `scripts/` directory, run `orchestrate_reprice.py` (handles MCP response shapes, account filter, preview, and mutation JSON):
 
 ```bash
-cd "${CLAUDE_PLUGIN_ROOT}/skills/asc845-swap-reprice-skill/scripts" && \
+cd "${CLAUDE_PLUGIN_ROOT}/skills/tres-asc845-swap-reprice-skill/scripts" && \
 python3 orchestrate_reprice.py \
   --input /path/to/swap_reprice_input.json \
   --account-name "Swaps Clearing Account" \
