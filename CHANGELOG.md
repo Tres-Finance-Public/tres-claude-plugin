@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.9] - 2026-06-02
+
+### Changed
+- **Breaking — skill ID:** renamed `asc845-swap-reprice-skill` → `tres-asc845-swap-reprice-skill` (update any saved `/<plugin>:<skill>` references)
+
 ## [1.9.8] - 2026-06-02
 
 ### Added

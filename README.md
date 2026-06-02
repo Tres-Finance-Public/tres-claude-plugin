@@ -10,7 +10,7 @@ tres-finance-plugin/
 │   ├── plugin.json        # Plugin metadata & userConfig
 │   └── marketplace.json   # Marketplace listing
 ├── skills/
-│   ├── asc845-swap-reprice-skill/     # ASC 845 swap repricing (clearing account zero-out)
+│   ├── tres-asc845-swap-reprice-skill/ # ASC 845 swap repricing (clearing account zero-out)
 │   ├── tres-explorer-tx-to-ledger/    # Explorer TX -> ledger entry
 │   ├── tres-tx-story/                 # TX flow diagram & explanation
 │   ├── tres-recon-gaps/               # Reconciliation gap resolution
@@ -37,7 +37,7 @@ tres-finance-plugin/
 
 ## Skills
 
-### `asc845-swap-reprice-skill`
+### `tres-asc845-swap-reprice-skill`
 Reprice swap inflow legs under ASC 845 (Nonmonetary Transactions) so a swaps/trade clearing account nets to zero. Queries subtransactions via MCP, runs bundled Python scripts for preview and mutation planning, then applies `setManualFiatValue` after user confirmation.
 
 ### `tres-explorer-tx-to-ledger`
