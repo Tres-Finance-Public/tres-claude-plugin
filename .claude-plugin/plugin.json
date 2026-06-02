@@ -1,7 +1,7 @@
 {
   "name": "tres-finance-plugin",
   "description": "The first official TRES Finance plugin for Claude Code — blockchain accounting workflows, ledger management, and transaction analysis.",
-  "version": "1.9.7",
+  "version": "1.9.8",
   "author": {
     "name": "Nadav Gilliam",
     "email": "nadav@tres.finance"

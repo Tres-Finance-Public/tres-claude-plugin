@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.8] - 2026-06-02
+
+### Added
+- `asc845-swap-reprice-skill` — ASC 845 equal-value exchange repricing for swap legs; bundled `scripts/reprice_swaps.py` and `scripts/orchestrate_reprice.py` to zero clearing account residuals via `setManualFiatValue`
+
 ## [1.9.7] - 2026-06-02
 
 ### Added
