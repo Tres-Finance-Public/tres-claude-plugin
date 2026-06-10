@@ -21,7 +21,8 @@ tres-finance-plugin/
 │   ├── tres-erp-rule-suggestions/     # ERP rule mapping for accounting entries
 │   ├── tres-export-3rd-party-contacts/ # Export unidentified counterparties to XLSX
 │   ├── tres-import-contacts/          # Import contacts from CSV/XLSX
-│   ├── tres-rollup-rules/             # Sub-transaction rollup rules (aggregate txs)
+│   ├── tres-rollup-rules/             # Discover & propose sub-transaction rollup rules
+│   ├── tres-rollup-review/            # Exact-impact gate / review for rollup rules
 │   ├── tres-onboarding/               # Full entity onboarding (orchestrates sub-skills)
 │   ├── tres-wallets-upload/           # Upload & onboard on-chain wallets / exchange accounts
 │   ├── tres-data-collection-commit/   # Trigger on-chain data collection (Commit)
@@ -71,7 +72,10 @@ Pull unidentified external addresses from `accountTxsSummary`, deduplicate and s
 Import labeled contacts into TRES from a CSV or XLSX file (headers: Contact Name, Contact Address, Contact Tag). Parses the file, validates rows, previews imports, and applies `setCustomAccountName` / `setCustomAccountNameLabelTags` in batches with progress and failure reporting.
 
 ### `tres-rollup-rules`
-Create, list, and delete rollup rules that consolidate high-volume sub-transactions into daily or monthly aggregated ledger entries (wallet, asset, direction, fees, optional filters), using the TRES MCP GraphQL API.
+Data-driven discovery of rollup rules: aggregates sub-transactions by (wallet, asset, platform, direction), drills into discriminating filters, validates each candidate against real transactions through the `tres-rollup-review` gate, then presents an HTML report + numbered proposal table and creates the approved rules (open-ended by default). Also lists and deletes rollup rules via the TRES MCP GraphQL API.
+
+### `tres-rollup-review`
+Computes the exact sub-transaction impact of a rollup rule (every filter applied, via `subTransactionRollupRulePreview`) and flags zero-match, overlap, and config problems. Runs as a pre-create quality gate invoked by `tres-rollup-rules`, and standalone to review submitted or existing PENDING rollup rules.
 
 ### `tres-onboarding`
 Run the full new-entity pipeline in order: wallets upload, data collection commit, balance validation, reconciliation gaps, cost basis (`tres-cost-basis`), export/import contacts for counterparties, and rollup rules — only when the user explicitly asks for full onboarding.

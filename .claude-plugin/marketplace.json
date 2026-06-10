@@ -12,7 +12,7 @@
       "name": "tres-finance-plugin",
       "source": "./",
       "description": "Blockchain accounting workflows, ledger management, and transaction analysis for TRES Finance.",
-      "version": "1.9.9",
+      "version": "1.10.0",
       "category": "finance",
       "tags": ["blockchain", "accounting", "ledger", "crypto", "tres-finance"]
     }
