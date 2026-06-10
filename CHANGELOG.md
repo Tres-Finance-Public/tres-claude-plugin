@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0] - 2026-06-10
+
+### Added
+- `tres-rollup-review` skill — computes the exact sub-transaction impact of a rollup rule (every filter applied, via `subTransactionRollupRulePreview`) and flags zero-match, overlap, and config problems. Runs as a pre-create quality gate for `tres-rollup-rules` (Mode A) and standalone to review submitted/pending rules (Mode B)
+
+### Changed
+- **Reworked `tres-rollup-rules`** from a manual create/view/delete wizard into a data-driven discovery pipeline, mirroring the platform "gold standard": scope → inventory → aggregation discovery by (wallet, asset, platform, direction) → mandatory `tres-rollup-review` validation gate → HTML proposal report + numbered proposal table → user approval → batch create (open-ended by default, `createdBy: AI`). Adds the four-dimension rule key model, the asset-class bridge, naming-convention inference, the `excludeRollups` discovery rule, and an HTML report template under `references/`. Retains list and delete operations
+
 ## [1.9.9] - 2026-06-02
 
 ### Changed
