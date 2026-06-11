@@ -3,7 +3,7 @@
 ## [1.11.0] - 2026-06-11
 
 ### Added
-- `tres-operation-link` skill — gives the user a direct, clickable dashboard link to an operation they just performed (created/updated transaction, rollup, or ERP rule). Transactions and rollups are pinned by `transactionHash` with `dateType=All time`, so freshly created pending/backdated rows are visible immediately without waiting for a data collect (rollups also add `showSpam=true`); ERP rules link to `/erp/rules?ruleType=custom&ruleId=<id>`. Resolves the org subdomain from `get_viewer` and renders a Markdown hyperlink. Defers ad-hoc filtered ledger views to the existing link-building guidance
+- `tres-operation-link` skill — gives the user a direct, clickable dashboard link to **anything** they just created or changed via the MCP. Generic by design with verified recipes for: ledger transactions and rollup transactions (pinned by `transactionHash` with `dateType=All time` so pending/backdated rows show immediately without a data collect; rollups add `showSpam=true`); automation rules — rollup, gap-fill, recurring report, classification — via `/automation-create?type=<type>&id=<id>` plus a "transactions this rollup rule targets" ledger link; ERP rules via `/erp/rules?ruleType=custom&ruleId=<id>`; and single wallet / ticket / invoice / bill / framework. Unlisted entities fall back to their named section page rather than fabricating query params. Resolves the org subdomain from `get_viewer` and renders a Markdown hyperlink. Defers ad-hoc filtered ledger views to plain link-building guidance
 
 ## [1.10.0] - 2026-06-10
 
