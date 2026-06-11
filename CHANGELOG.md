@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.11.0] - 2026-06-11
+
+### Added
+- `tres-ledger-link` skill — builds a TRES dashboard ledger URL (Transactions tab) with a precise filter set from a plain-English request: date range, wallets, assets, asset classes, tags, activities, platforms, actions, amount range, status (`transactionView`), booleans (`showSpam`, `missingFiat`, ...), saved filters, and more. Resolves the org subdomain from `get_viewer`, looks up unknown IDs via the `execute` MCP tool, and validates the URL (no `=false`, comma-joined arrays, lowercased platforms, encoded spaces, `Custom date` pairing) before handing it over. Scoped to the Transactions tab
+
 ## [1.10.0] - 2026-06-10
 
 ### Added
