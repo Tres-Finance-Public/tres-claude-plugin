@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.11.0] - 2026-06-11
+
+### Added
+- `tres-operation-link` skill — gives the user a direct, clickable dashboard link to an operation they just performed (created/updated transaction, rollup, or ERP rule). Transactions and rollups are pinned by `transactionHash` with `dateType=All time`, so freshly created pending/backdated rows are visible immediately without waiting for a data collect (rollups also add `showSpam=true`); ERP rules link to `/erp/rules?ruleType=custom&ruleId=<id>`. Resolves the org subdomain from `get_viewer` and renders a Markdown hyperlink. Defers ad-hoc filtered ledger views to the existing link-building guidance
+
 ## [1.10.0] - 2026-06-10
 
 ### Added
