@@ -851,7 +851,7 @@ const statsObs = new IntersectionObserver((entries) => {
 statsObs.observe(document.getElementById('statsBar'));
 
 const capabilities = [
-  { cat:'onboarding', icon:'play',       title:'Full Onboarding Flow', desc:'End-to-end entity onboarding orchestrating all 9 steps in sequence.', detail:'Create entity → Wallet upload → Data collection → Balance validation → Reconciliation → Cost basis → Contact export → Contact import → Rollup rules. One conversation, zero manual work.', accent:'#3b82f6' },
+  { cat:'onboarding', icon:'play',       title:'Full Onboarding Flow', desc:'End-to-end entity onboarding orchestrating all 9 steps in sequence.', detail:'Create entity → Wallet upload → Data collection → Balance validation → Reconciliation → Cost basis → 3rd-party address export → Contact import → Rollup rules. One conversation, zero manual work.', accent:'#3b82f6' },
   { cat:'onboarding', icon:'link',       title:'Wallet Upload',        desc:'Batch-onboard on-chain wallets and exchange accounts via CSV, Excel, or conversation.', detail:'Supports all major chains and exchanges. Validates addresses, detects duplicates, and previews in an editable table before submitting. One conversation replaces hours of manual setup.', accent:'#3b82f6' },
   { cat:'onboarding', icon:'database',   title:'Data Collection',      desc:'Trigger on-chain data commits to pull balances, transactions, and token positions.', detail:'Orchestrates the TRES commit engine to crawl every connected wallet across 50+ chains. Monitors progress and reports completion, all hands-free.', accent:'#3b82f6' },
   { cat:'onboarding', icon:'shieldCheck',title:'Balance Validation',   desc:'Cross-check TRES balances against DeBank to catch discrepancies instantly.', detail:'Compares every token position across every wallet against independent on-chain sources. Generates a discrepancy report highlighting mismatches with drill-down context.', accent:'#3b82f6' },
@@ -912,7 +912,7 @@ const steps = [
   { icon:'shieldCheck',label:'Validate\nBalances', color:'#10b981' },
   { icon:'scale',      label:'Reconcile\nGaps',   color:'#f59e0b' },
   { icon:'calculator', label:'Cost\nBasis',       color:'#8b5cf6' },
-  { icon:'upload',     label:'Export\nContacts',   color:'#f43f5e' },
+  { icon:'upload',     label:'Export\n3rd-Party Addresses',   color:'#f43f5e' },
   { icon:'download',   label:'Import\nContacts',   color:'#3b82f6' },
   { icon:'layers',     label:'Rollup\nRules',     color:'#06b6d4' },
 ];
