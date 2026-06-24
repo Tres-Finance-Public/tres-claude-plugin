@@ -11,8 +11,8 @@
     {
       "name": "tres-finance-plugin",
       "source": "./",
-      "description": "Blockchain accounting workflows, ledger management, and transaction analysis for TRES Finance.",
-      "version": "1.11.0",
+      "description": "Blockchain accounting workflows, ledger management, and transaction analysis for TRES Finance. Connects to the hosted TRES Finance MCP server; collects no usage telemetry. Privacy: https://tres.finance/privacy-policy/",
+      "version": "1.12.0",
       "category": "finance",
       "tags": ["blockchain", "accounting", "ledger", "crypto", "tres-finance"]
     }
