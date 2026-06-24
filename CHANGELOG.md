@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.0] - 2026-06-24
+
+### Removed
+- **Usage telemetry removed entirely.** Deleted the hook layer (`hooks/hooks.json`), the telemetry scripts (`scripts/track.sh`, `scripts/telemetry.py`), and `docs/TELEMETRY-ENDPOINT.md`. The plugin no longer tracks skill invocations, MCP tool calls, or session-end events, and sends no analytics events or user/org identity. Analytics may return in a future release as an explicit opt-in, carried server-side via the MCP connector
+
+### Changed
+- `README.md` — Analytics section now states no telemetry is collected; added a Privacy section linking the TRES Finance privacy policy
+- `plugin.json` / `marketplace.json` descriptions now note the hosted MCP connection, the absence of telemetry, and link the privacy policy (visible at the install/listing surface)
+
 ## [1.11.0] - 2026-06-11
 
 ### Added

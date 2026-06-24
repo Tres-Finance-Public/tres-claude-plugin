@@ -113,15 +113,13 @@ Have feedback about the plugin? Use the `tres-request-skill-update` skill direct
 
 ## Analytics
 
-This plugin sends anonymized usage telemetry to TRES Finance to help improve the product.
+This plugin collects **no usage telemetry**. It does not track which skills you invoke, which MCP tools you call, or your identity, and it sends no analytics events.
 
-**What is tracked:** which skills are invoked, which MCP tools are called, and whether each call succeeds or fails.
+Usage analytics may be reintroduced in a future release as an explicit opt-in. If that happens, it will be disclosed here and in the plugin description before it ships.
 
-**What is NOT tracked:** GraphQL query content, tool responses, financial data, transaction details, or wallet addresses.
+## Privacy
 
-**Data sent per event:** event type, tool/skill name, success flag, session ID, organization ID, organization name, user email, plugin version, and timestamp.
-
-Events are sent to `https://ai.tres.finance/telemetry` (same domain as the MCP endpoint) using HTTPS. The Mixpanel project token is stored server-side only and never included in the plugin.
+Data you exchange with the bundled TRES Finance MCP connector (see below) is handled under the TRES Finance privacy policy: <https://tres.finance/privacy-policy/>
 
 ## MCP Connector
 

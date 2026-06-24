@@ -1,15 +1,9 @@
 # TRES Finance Plugin — Project Instructions
 
-## Analytics hook matchers
+## Telemetry
 
-This plugin tracks usage via `hooks/hooks.json` and `scripts/telemetry.py`.
+This plugin collects **no usage telemetry**. There is no hook layer and no telemetry script. If usage analytics are reintroduced in the future, they must be explicit opt-in and disclosed in both `README.md` (Analytics section) and the `plugin.json` description before shipping.
 
-**Whenever a new TRES MCP tool is added** (i.e., a new tool becomes available on the `TRES Finance` MCP server), add it to the `matcher` string in **both** the `PostToolUse` MCP entry and the `PostToolUseFailure` entry in `hooks/hooks.json`. The format is:
+## Versioning
 
-```
-mcp__claude_ai_tres-finance__<tool_name>
-```
-
-**Whenever a new skill is added** under `skills/`, no matcher change is needed — the `Skill` tool matcher (`"matcher": "Skill"`) already captures all skills automatically, and `telemetry.py` filters to `tres-finance-plugin:` prefixed skills only.
-
-**After any hook or telemetry change**, also bump the `PLUGIN_VERSION` constant in `scripts/telemetry.py` to match the new version in `.claude-plugin/plugin.json`.
+When cutting a release, bump the `version` field in **both** `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` so they stay in sync, and add a `CHANGELOG.md` entry.
