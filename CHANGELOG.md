@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.12.1] - 2026-06-28
+
+### Changed
+- `tres-report-create` — hardened against silent export failures. Report generation is a side effect of the `transaction` / `organizationBalance` GraphQL queries; a slightly malformed trigger (inline literals, a renamed variable, a missing param) returns `200` with `errors: null` and silently creates no report. Added a mandatory **Step 1c** that verifies a report row actually exists by exact `exportName` right after triggering — an empty lookup is treated as a SILENT FAILURE (re-check the variable rules, retry once, then stop) rather than reported as success. Download links are now rendered as a clickable markdown link instead of the raw presigned URL, and the strict variable-naming/typing rules are reinforced in the checklist and Rules section
+
 ## [1.12.0] - 2026-06-24
 
 ### Removed

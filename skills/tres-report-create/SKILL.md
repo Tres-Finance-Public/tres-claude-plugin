@@ -1,6 +1,6 @@
 ---
 name: tres-report-create
-description: Create (generate) any TRES Finance report end-to-end via the tres-mcp MCP server and GraphQL — trigger the export, poll until done, and return the download link. Trigger this skill on ANY report creation request, including phrases like "create a report", "generate a report", "export", "run a report", "I need a Transaction Ledger / Balances / Reconciliation / Cost Basis / Roll Forward / Staking / Audit report", "pull the data for", "download a report for", "give me a CSV/XLSX of", or whenever the user wants TRES to produce a report file. Use together with tres-report-advisor when the user is unsure which report they need.
+description: Create (generate) any TRES Finance report end-to-end via the tres-mcp MCP server and GraphQL — trigger the export, verify a report row was actually created (guarding against silent failures), poll until done, and return the download link. Trigger this skill on ANY report creation request, including phrases like "create a report", "generate a report", "export", "run a report", "I need a Transaction Ledger / Balances / Reconciliation / Cost Basis / Roll Forward / Staking / Audit report", "pull the data for", "download a report for", "give me a CSV/XLSX of", or whenever the user wants TRES to produce a report file. Use together with tres-report-advisor when the user is unsure which report they need.
 ---
 
 # TRES Report Create
@@ -15,6 +15,7 @@ If you are unsure *which* report the user needs, use the `tres-report-advisor` s
 - [ ] Step 0: Clarify report type + date range + currency
 - [ ] Step 1: Trigger the export (GraphQL via MCP `execute`)
 - [ ] Step 1b: If the report isn't in the tables below, derive it from the schema
+- [ ] Step 1c: VERIFY a report row was actually created (poll by exact name) — catches silent failures
 - [ ] Step 2: Poll the report query until status == DONE
 - [ ] Step 3 (optional): Download + analyze the file
 ```
@@ -141,7 +142,7 @@ query($limit: Int, $offset: Int, $timestamp_Gte: DateTime, $timestamp_Lte: DateT
 }
 ```
 
-The export then generates asynchronously in the background. A 200 with `totalCount` only confirms the trigger validated — it does not mean the file is ready (poll in Step 2).
+The export then generates asynchronously in the background. A 200 with `totalCount` only confirms the *query* ran — it does **not** mean a report was created (verify in Step 1c) and it does **not** mean the file is ready (poll in Step 2).
 
 #### Reports needing extra parameters (omit these and the report errors or comes back empty)
 
@@ -204,6 +205,29 @@ Principles that make this work first-try:
 - Short term: save the recipe via the MCP `memory` tool — trigger query, `exportFormat`, working variable types, and any required filters.
 - Durable: propose a new row for this skill's tables (report name, `exportFormat`, trigger query, required params) and surface it to the user so the skill stays current.
 
+### Step 1c — Verify a report row was created (MANDATORY anti-silent-failure check)
+
+**Do this immediately after every trigger, before you tell the user anything succeeded.** The trigger is a query *side effect*: if the request is even slightly malformed (inline literals instead of variables, a renamed variable like `$ef`, a missing required param), the BFF returns `200` with `errors: null` and **silently creates no report**. The only reliable way to know it worked is to look the row up by name.
+
+Query for the row using the **exact** `exportName` you triggered with:
+
+```graphql
+query($name: String, $ordering: String, $limit: Int) {
+  report(name: $name, ordering: $ordering, limit: $limit) {
+    results { id name status }
+  }
+}
+```
+
+```json
+{ "name": "<the exact exportName from Step 1>", "ordering": "-created_at", "limit": 1 }
+```
+
+- **`results` is empty (no row)** → this is a **SILENT FAILURE**, not "in progress". Do **NOT** report success. Re-check the trigger against the rules above — params passed as **variables** (not inline literals), variables **named exactly** `exportName`/`exportFormat`/`currency`/`outputFormat`/`timestamp_*`, correct types — then re-trigger **once**. If it still creates no row, stop and tell the user it failed silently and could not be created (don't loop forever).
+- **A row exists** → good, the report was created. Continue to Step 2 to poll it to `DONE`.
+
+> Make the `exportName` unique per run (e.g. append the date or a timestamp) so this lookup matches *your* row and not an older report with the same name.
+
 ### Step 2 — Poll until done
 
 Find the report by the exact `exportName` from Step 1 (most reliable match):
@@ -240,6 +264,14 @@ query($name: String, $ordering: String, $limit: Int) {
 
 Small reports finish in seconds; large reports (many assets, wide date ranges, large orgs) can take minutes to hours — set expectations early. Once `status == DONE`, share the `link` with the user.
 
+**Presenting the download link.** Never paste the raw presigned URL into the chat — it's long, ugly, and full of credentials. Always render it as a clean clickable **markdown link** with friendly anchor text, putting the full URL in the link target:
+
+```markdown
+[Click here to download your report](<the full presigned link>)
+```
+
+You may tailor the anchor text to the report, e.g. `[Download your ERP Pre-Sync report (CSV)](<link>)`. Keep the anchor short and human; the URL itself stays hidden behind it. Mention that the link is presigned and expires after a limited window (~24h).
+
 ### Step 3 — Download + analyze (optional)
 
 If the user wants the data analyzed (not just the link), download via the presigned URL and inspect it locally with pandas:
@@ -264,9 +296,11 @@ Always start with `df.head()` and `df.dtypes`, then run the requested analysis (
 - Match the query to the report's `entitiesType` using the table above — **except** the special-case reports above (`COST_BASIS_INVENTORY` triggers via `transaction`).
 - For any report NOT in the tables, follow **Step 1b**: `introspect` the query for exact arg types, `validate_query`, trigger minimal, fix from the error→fix table, then persist the recipe. Never hand-guess types or filters for an unknown report.
 - **Variable types are strict:** `outputFormat` is `ReportOutputFormat`, `timestamp_*` are `DateTime`, list filters are `[String]`. A wrong type = HTTP 400 = no report. Pass params as variables named exactly `exportName` / `exportFormat` / etc.
+- **ALWAYS run Step 1c after triggering.** Verify the report row exists by exact `exportName` before claiming anything worked. An empty lookup means a **silent failure** (200 + `errors: null` + no row), not "in progress" — never report success without a confirmed row. Use a unique `exportName` per run so the lookup matches your row.
 - For `ROLLUP_BREAKDOWN`, you MUST pass `identifier_In`; for `COST_BASIS_INVENTORY`, exactly one `children_Asset_AssetClass_In` — otherwise the report is empty or ERRORs.
 - After triggering, verify success on **both** channels: no `error`/`error_type` on the trigger, and `status` reaches `DONE` (not `ERROR`).
 - Poll the `report` query by `name`, not `exportFormat`; use `ordering` (not `orderBy`) and `link` (not `downloadUrl`).
+- **Present the download link as a clickable markdown link** (e.g. `[Click here to download your report](<link>)`), never the raw presigned URL. Note that the link is presigned and expires after a limited window.
 - Default `currency` to `"usd"` and `outputFormat` to `"CSV"` unless the user specifies otherwise.
 - Never truncate or shorten transaction hashes, addresses, report IDs, or `identifier_In` values — always show/pass them in full.
 - This is a read/export skill — **NEVER** run mutations that modify platform data.
