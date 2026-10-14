@@ -108,6 +108,12 @@ Summarize from the JSON `export` block: file path, rows, accounts (`documents`),
 `fiatValueBySource`. Then send the CSV to the user (e.g. with SendUserFile when available).
 Do not paste CSV rows into the chat beyond a few sample lines.
 
+Add this note when handing over the file: the CSV holds exact values (integers for `blockNumber` /
+`blockTimestamp`, plain decimals with full precision for `amount` / `unitFiatPrice` / `fiatValue`).
+Double-clicking it in Excel shows large and tiny numbers in scientific notation and rounds values beyond
+15 significant digits; to view it losslessly use Excel → Data → From Text/CSV and set those columns to
+Text, and never save over the original CSV from Excel.
+
 ## Rules
 
 - Read-only: the script only calls snapshot-status, aggregate (row count) and find. Never call any other
