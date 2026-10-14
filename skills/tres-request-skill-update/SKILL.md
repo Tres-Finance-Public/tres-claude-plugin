@@ -99,6 +99,7 @@ or about the plugin overall, note that.
 | `tres-asset-balance-validation` | Balance validation vs DeBank |
 | `tres-report-analyzer` | Analyze TRES report XLSX exports |
 | `tres-report-advisor` | Recommend the right TRES report |
+| `tres-pof-report` | Export PoF account balances snapshot to CSV |
 | `tres-invoice-bill-matching` | Match txs to ERP invoices/bills |
 | `tres-export-3rd-party-contacts` | Export unidentified counterparties to XLSX |
 | `tres-import-contacts` | Import contacts from CSV/XLSX |

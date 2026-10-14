@@ -17,6 +17,7 @@ tres-finance-plugin/
 │   ├── tres-asset-balance-validation/ # Balance validation vs DeBank (+ DeFi positions)
 │   ├── tres-report-analyzer/       # Analyze TRES report XLSX exports
 │   ├── tres-report-advisor/        # Recommend the right TRES report
+│   ├── tres-pof-report/            # Export PoF account balances snapshot to CSV
 │   ├── tres-invoice-bill-matching/    # Match txs to ERP invoices/bills + sync
 │   ├── tres-erp-rule-suggestions/     # ERP rule mapping for accounting entries
 │   ├── tres-export-3rd-party-contacts/ # Export unidentified counterparties to XLSX
@@ -58,6 +59,9 @@ Analyze uploaded TRES Finance report exports (XLSX): identifies the report type 
 
 ### `tres-report-advisor`
 Recommend the right TRES Finance report for a goal (month-end, audit, tax, reconciliation). Points users to the right tabs, columns, and export API types.
+
+### `tres-pof-report`
+Export a Proof of Funds account balances snapshot (latest or a given date, free text such as "end of September" supported) to CSV via `scripts/pof_report.py` — a standard-library Python script that calls the read-only TRES API PoF endpoints with the organization's API key from the environment. Verifies the snapshot exists and the row count is under the limit (default 1,000,000) before exporting, and suggests a per-network split for larger organizations.
 
 ### `tres-invoice-bill-matching`
 Match a TRES ledger transaction to an open ERP invoice or bill (AP/AR), pick the payment account from the COA, optionally align fiat values, and sync the transaction to the connected ERP (Xero, QuickBooks Online, NetSuite).
