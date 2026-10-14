@@ -174,10 +174,27 @@ def get_bearer_token():
     return access_token
 
 
+PROOF_OF_FUNDS_ORGANIZATION_QUERY = "query { admin { organizationSettings { proofOfFunds { organizationName } } } }"
+
+
+def is_valid_org_label(label):
+    return bool(label) and all(char.isalnum() or char in "-_" for char in label)
+
+
 class PofApi:
     def __init__(self, base_url, token):
         self.base_url = base_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {token}"}
+
+    def pof_organization_name(self):
+        """The PoF organization the credentials map to (used to name the file); None if unavailable."""
+        try:
+            response = http_json("POST", f"{self.base_url}/graphql", {"query": PROOF_OF_FUNDS_ORGANIZATION_QUERY}, self.headers)
+            name = response["data"]["admin"]["organizationSettings"]["proofOfFunds"]["organizationName"]
+        except (ReportError, KeyError, TypeError) as error:
+            log(f"  could not read the PoF organization name ({error}); pass --org-label to name the file")
+            return None
+        return name if is_valid_org_label(name) else None
 
     def post(self, path, body, max_attempts=MAX_ATTEMPTS):
         return http_json("POST", f"{self.base_url}/pof/{path}", body, self.headers, max_attempts=max_attempts)
@@ -483,7 +500,7 @@ def main():
     parser = argparse.ArgumentParser(description="Export TRES PoF account balances to CSV")
     parser.add_argument("--timestamp", default="latest", help="'latest', ISO-8601 (UTC) or epoch milliseconds")
     parser.add_argument("--out", default=".", help="output directory (default: current directory)")
-    parser.add_argument("--org-label", help="organization name used in the file name, e.g. nonco")
+    parser.add_argument("--org-label", help="override the file name prefix (default: the PoF organization name, e.g. nonco)")
     parser.add_argument("--networks", help="comma-separated networks to include")
     parser.add_argument("--sources", help="comma-separated sources to include")
     parser.add_argument("--max-rows", type=int, default=DEFAULT_MAX_ROWS)
@@ -492,7 +509,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        if args.org_label and not all(char.isalnum() or char in "-_" for char in args.org_label):
+        if args.org_label and not is_valid_org_label(args.org_label):
             raise ReportError("--org-label may only contain letters, digits, '-' and '_'")
         if args.max_rows <= 0 or not 0 < args.page_size <= 20000:
             raise ReportError("--max-rows must be positive and --page-size between 1 and 20000")
@@ -512,11 +529,18 @@ def main():
         if size:
             log(f"  {size['rows']:,} rows across {size['documents']:,} accounts on {size['networks']} networks")
 
-        summary = {"status": "ok", "snapshot": to_iso(snapshot), "maxRows": args.max_rows, "expected": size}
+        organization = args.org_label or api.pof_organization_name()
+        summary = {
+            "status": "ok",
+            "organization": organization,
+            "snapshot": to_iso(snapshot),
+            "maxRows": args.max_rows,
+            "expected": size,
+        }
         if not args.check_only:
             out_dir = os.path.abspath(os.path.expanduser(args.out))
             os.makedirs(out_dir, exist_ok=True)
-            out_path = available_path(out_dir, output_file_name(args.org_label, snapshot))
+            out_path = available_path(out_dir, output_file_name(organization, snapshot))
             log(f"Exporting to {out_path}...")
             plan = page_plan(by_network, networks, args.page_size)
             summary["export"] = export(api, snapshot, networks, sources, args.max_rows, plan, out_path)

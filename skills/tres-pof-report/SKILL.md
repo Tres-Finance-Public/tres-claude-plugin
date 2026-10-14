@@ -49,9 +49,10 @@ If they are missing, tell the user to export them in the shell that launches Cla
 shell profile) and restart the session. **Never ask the user to paste a secret into the chat, never echo
 it, and never write it to a file.**
 
-If the TRES MCP is connected, call `get_viewer` to get the organization name and use it as
-`--org-label` (lowercase, letters/digits/`-`/`_` only) so the file is named like
-`nonco-pof.accountBalances.2026-07-01.csv`. Otherwise omit `--org-label`.
+The script reads the PoF organization name (e.g. `nonco`) from the organization's settings and names the
+file `<org>-pof.accountBalances.<date>.csv`, e.g. `nonco-pof.accountBalances.2026-10-01.csv` (the JSON
+summary's `organization` field). It never overwrites an existing file — it adds ` (1)`, ` (2)`, ….
+Only pass `--org-label <name>` if the user explicitly wants a different file name prefix.
 
 ### Step 1 — Resolve the timestamp
 
@@ -90,7 +91,7 @@ stdout is a JSON summary; progress goes to stderr. Handle the exit code:
 
 ```bash
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/tres-pof-report/scripts/pof_report.py" \
-  --timestamp <resolved ISO from Step 2's "snapshot"> --org-label <org> --out <dir>
+  --timestamp <resolved ISO from Step 2's "snapshot"> --out <dir>
 ```
 
 - Use the exact `snapshot` value returned in Step 2 (this pins `latest`).
