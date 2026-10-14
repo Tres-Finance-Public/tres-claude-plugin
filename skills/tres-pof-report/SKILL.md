@@ -55,7 +55,7 @@ If the TRES MCP is connected, call `get_viewer` to get the organization name and
 
 ### Step 1 — Resolve the timestamp
 
-Default is `latest` (the newest completed snapshot of the last 7 days). Otherwise convert the user's
+Default is `latest` (the newest completed snapshot, searching back up to ~13 months). Otherwise convert the user's
 wording to an ISO-8601 UTC instant **yourself** and pass only `latest` or ISO to the script:
 
 | User says | Pass |

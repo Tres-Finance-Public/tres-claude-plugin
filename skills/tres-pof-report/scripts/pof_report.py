@@ -40,8 +40,12 @@ AUTH_AUDIENCE = "https://app.tres.finance"
 
 DEFAULT_MAX_ROWS = 1_000_000  # Excel's sheet limit is 1,048,576 rows
 DEFAULT_PAGE_SIZE = 2000  # account documents per request (pof-service caps at 20,000)
-LATEST_LOOKBACK_DAYS = 7
-NEAREST_WINDOW_DAYS = 3
+# Accounts can hold hundreds of tokens, so pages are sized by rows to keep responses small
+# (the BFF's PoF client times out after 30s)
+TARGET_ROWS_PER_PAGE = 10_000
+MAX_PAGE_SHRINKS = 6
+# Snapshot schedules range from daily to monthly, so widen the search until something is found
+SEARCH_WINDOWS_DAYS = (7, 45, 400)
 TOP_NETWORKS_IN_SUMMARY = 10
 REQUEST_TIMEOUT_SECONDS = 120
 MAX_ATTEMPTS = 4
@@ -94,7 +98,7 @@ def require_secure_url(url, name):
     raise ReportError(f"{name} must use https:// (plain http is only allowed for localhost)")
 
 
-def http_json(method, url, body=None, headers=None, form=False):
+def http_json(method, url, body=None, headers=None, form=False, max_attempts=MAX_ATTEMPTS):
     """Send a request and return the parsed JSON. Numbers are kept as their original text."""
     headers = dict(headers or {})
     data = None
@@ -108,7 +112,7 @@ def http_json(method, url, body=None, headers=None, form=False):
     headers.setdefault("Accept", "application/json")
     headers.setdefault("x-tres-source", "tres-pof-report-skill")
 
-    for attempt in range(1, MAX_ATTEMPTS + 1):
+    for attempt in range(1, max_attempts + 1):
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
@@ -117,13 +121,13 @@ def http_json(method, url, body=None, headers=None, form=False):
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:500]
             retryable = error.code >= 500 or error.code == 429
-            if not retryable or attempt == MAX_ATTEMPTS:
+            if not retryable or attempt == max_attempts:
                 raise ReportError(f"{method} {urllib.parse.urlparse(url).path} failed with HTTP {error.code}: {detail}")
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
-            if attempt == MAX_ATTEMPTS:
-                raise ReportError(f"{method} {urllib.parse.urlparse(url).path} failed: {error}")
+        except OSError as error:  # connection errors and socket timeouts
+            if attempt == max_attempts:
+                raise ReportError(f"{method} {urllib.parse.urlparse(url).path} failed: {error or type(error).__name__}")
         backoff = 2**attempt
-        log(f"  request failed (attempt {attempt}/{MAX_ATTEMPTS}), retrying in {backoff}s")
+        log(f"  request failed (attempt {attempt}/{max_attempts}), retrying in {backoff}s")
         time.sleep(backoff)
     raise ReportError("unreachable")
 
@@ -170,8 +174,8 @@ class PofApi:
         self.base_url = base_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {token}"}
 
-    def post(self, path, body):
-        return http_json("POST", f"{self.base_url}/pof/{path}", body, self.headers)
+    def post(self, path, body, max_attempts=MAX_ATTEMPTS):
+        return http_json("POST", f"{self.base_url}/pof/{path}", body, self.headers, max_attempts=max_attempts)
 
     def snapshot_status(self, timestamps_ms=None, start=None, end=None):
         if timestamps_ms:
@@ -199,7 +203,8 @@ class PofApi:
             body["networks"] = networks
         if sources:
             body["sources"] = sources
-        response = self.post("find-account-balances", body) or {}
+        # Few attempts per page: the caller retries with a smaller page instead
+        response = self.post("find-account-balances", body, max_attempts=2) or {}
         return response.get("results", [])
 
 
@@ -233,26 +238,32 @@ def completed_snapshots(status):
 
 
 def nearest_snapshots(api, moment):
-    window = timedelta(days=NEAREST_WINDOW_DAYS)
-    completed = completed_snapshots(api.snapshot_status(start=moment - window, end=moment + window))
     target = to_ms(moment)
-    before = [ms for ms in completed if ms < target]
-    after = [ms for ms in completed if ms > target]
+    now = datetime.now(timezone.utc)
+    before = after = None
+    for days in SEARCH_WINDOWS_DAYS:
+        window = timedelta(days=days)
+        completed = completed_snapshots(api.snapshot_status(start=moment - window, end=min(moment + window, now)))
+        earlier = [ms for ms in completed if ms < target]
+        later = [ms for ms in completed if ms > target]
+        before = before or (earlier[-1] if earlier else None)
+        after = after or (later[0] if later else None)
+        if before and (after or moment + window >= now):
+            break
     return {
-        "before": to_iso(from_ms(before[-1])) if before else None,
-        "after": to_iso(from_ms(after[0])) if after else None,
+        "before": to_iso(from_ms(before)) if before else None,
+        "after": to_iso(from_ms(after)) if after else None,
     }
 
 
 def resolve_snapshot(api, requested):
     if requested == "latest":
         now = datetime.now(timezone.utc)
-        completed = completed_snapshots(api.snapshot_status(start=now - timedelta(days=LATEST_LOOKBACK_DAYS), end=now))
-        if not completed:
-            raise ReportError(
-                f"No completed PoF snapshot in the last {LATEST_LOOKBACK_DAYS} days", EXIT_NO_SNAPSHOT
-            )
-        return from_ms(completed[-1])
+        for days in SEARCH_WINDOWS_DAYS:
+            completed = completed_snapshots(api.snapshot_status(start=now - timedelta(days=days), end=now))
+            if completed:
+                return from_ms(completed[-1])
+        raise ReportError(f"No completed PoF snapshot in the last {SEARCH_WINDOWS_DAYS[-1]} days", EXIT_NO_SNAPSHOT)
 
     moment = parse_timestamp(requested)
     ms = to_ms(moment)
@@ -298,7 +309,7 @@ def check_size(api, snapshot, networks, sources, max_rows):
         results = api.count_rows(snapshot, networks, sources)
     except ReportError as error:
         log(f"  row count unavailable ({error}); the export will stop if it exceeds {max_rows:,} rows")
-        return None
+        return None, None
 
     by_network = sorted(
         ({"network": item["_id"], "documents": int(item["documents"]), "rows": int(item["rows"])} for item in results),
@@ -323,14 +334,38 @@ def check_size(api, snapshot, networks, sources, max_rows):
                 "networksAboveLimitOnTheirOwn": oversized,
             },
         )
-    return size
+    return size, by_network
 
 
 def cell(value):
     return "" if value is None else value
 
 
-def export(api, snapshot, networks, sources, max_rows, page_size, out_path):
+def page_plan(by_network, networks, page_size):
+    """Page one network at a time (indexed on network+timestamp) with pages sized by rows per account."""
+    if not by_network:
+        return [(networks, page_size)]
+    plan = []
+    for entry in by_network:
+        rows_per_account = max(1, -(-entry["rows"] // max(1, entry["documents"])))
+        plan.append(([entry["network"]], max(1, min(page_size, TARGET_ROWS_PER_PAGE // rows_per_account))))
+    return plan
+
+
+def fetch_page(api, snapshot, networks, sources, page_size, offset):
+    """Fetch one page, halving the page size on failures (large accounts can make responses slow)."""
+    for _ in range(MAX_PAGE_SHRINKS):
+        try:
+            return api.find_page(snapshot, networks, sources, page_size, offset), page_size
+        except ReportError as error:
+            if page_size == 1:
+                raise
+            page_size = max(1, page_size // 2)
+            log(f"  page failed ({error}); retrying with {page_size} accounts per page")
+    return api.find_page(snapshot, networks, sources, page_size, offset), page_size
+
+
+def export(api, snapshot, networks, sources, max_rows, plan, out_path):
     tmp_path = out_path + ".part"
     rows = documents = missing_price = 0
     fiat_by_source = {}
@@ -340,31 +375,33 @@ def export(api, snapshot, networks, sources, max_rows, page_size, out_path):
         with open(tmp_path, "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerow(COLUMNS)
-            offset = 0
-            while True:
-                page = api.find_page(snapshot, networks, sources, page_size, offset)
-                for account in page:
-                    documents += 1
-                    networks_seen.add(account.get("network"))
-                    account_cells = [cell(account.get(column)) for column in ACCOUNT_COLUMNS]
-                    for balance in account.get("balances") or []:
-                        rows += 1
-                        if rows > max_rows:
-                            raise ReportError(
-                                f"Export exceeded the {max_rows:,} row limit; aborted and removed the partial file",
-                                EXIT_TOO_LARGE,
-                            )
-                        writer.writerow(account_cells + [cell(balance.get(column)) for column in BALANCE_COLUMNS])
-                        if balance.get("unitFiatPrice") is None:
-                            missing_price += 1
-                        fiat_value = balance.get("fiatValue")
-                        if fiat_value is not None:
-                            source = account.get("source") or ""
-                            fiat_by_source[source] = fiat_by_source.get(source, 0.0) + float(fiat_value)
-                log(f"  fetched {documents:,} accounts / {rows:,} rows")
-                if len(page) < page_size:
-                    break
-                offset += page_size
+            for page_networks, page_size in plan:
+                offset = 0
+                while True:
+                    page, page_size = fetch_page(api, snapshot, page_networks, sources, page_size, offset)
+                    for account in page:
+                        documents += 1
+                        networks_seen.add(account.get("network"))
+                        account_cells = [cell(account.get(column)) for column in ACCOUNT_COLUMNS]
+                        for balance in account.get("balances") or []:
+                            rows += 1
+                            if rows > max_rows:
+                                raise ReportError(
+                                    f"Export exceeded the {max_rows:,} row limit; aborted and removed the partial file",
+                                    EXIT_TOO_LARGE,
+                                )
+                            writer.writerow(account_cells + [cell(balance.get(column)) for column in BALANCE_COLUMNS])
+                            if balance.get("unitFiatPrice") is None:
+                                missing_price += 1
+                            fiat_value = balance.get("fiatValue")
+                            if fiat_value is not None:
+                                source = account.get("source") or ""
+                                fiat_by_source[source] = fiat_by_source.get(source, 0.0) + float(fiat_value)
+                    if len(page) < page_size:
+                        break
+                    offset += len(page)
+                label = ",".join(page_networks) if page_networks else "all networks"
+                log(f"  {label}: done ({documents:,} accounts / {rows:,} rows so far)")
         os.replace(tmp_path, out_path)
     except BaseException:
         if os.path.exists(tmp_path):
@@ -420,7 +457,7 @@ def main():
         log(f"  snapshot: {to_iso(snapshot)}")
 
         log("Counting rows...")
-        size = check_size(api, snapshot, networks, sources, args.max_rows)
+        size, by_network = check_size(api, snapshot, networks, sources, args.max_rows)
         if size:
             log(f"  {size['rows']:,} rows across {size['documents']:,} accounts on {size['networks']} networks")
 
@@ -430,7 +467,8 @@ def main():
             os.makedirs(out_dir, exist_ok=True)
             out_path = os.path.join(out_dir, output_file_name(args.org_label, snapshot))
             log(f"Exporting to {out_path}...")
-            summary["export"] = export(api, snapshot, networks, sources, args.max_rows, args.page_size, out_path)
+            plan = page_plan(by_network, networks, args.page_size)
+            summary["export"] = export(api, snapshot, networks, sources, args.max_rows, plan, out_path)
         print(json.dumps(summary, indent=2))
         return EXIT_OK
     except ReportError as error:

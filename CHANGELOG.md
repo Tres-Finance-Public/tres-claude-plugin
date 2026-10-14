@@ -3,7 +3,7 @@
 ## [1.13.0] - 2026-10-14
 
 ### Added
-- `tres-pof-report` skill — exports a Proof of Funds account balances snapshot (one row per wallet token balance: timestamp, network, account, block, custodian, source, vault, token, amount, unit price, fiat value) to CSV for the latest snapshot or a requested date, resolving free-text dates such as "end of September" to UTC. Bundled `scripts/pof_report.py` (Python standard library only) calls the read-only TRES API PoF endpoints with credentials from the environment (`TRES_CLIENT_ID`/`TRES_CLIENT_SECRET` or `TRES_API_TOKEN`), fails fast when no completed snapshot exists (listing the nearest ones), and refuses exports above a row limit (default 1,000,000) with a suggested per-network split
+- `tres-pof-report` skill — exports a Proof of Funds account balances snapshot (one row per wallet token balance: timestamp, network, account, block, custodian, source, vault, token, amount, unit price, fiat value) to CSV for the latest snapshot or a requested date, resolving free-text dates such as "end of September" to UTC. Bundled `scripts/pof_report.py` (Python standard library only) calls the read-only TRES API PoF endpoints with credentials from the environment (`TRES_CLIENT_ID`/`TRES_CLIENT_SECRET` or `TRES_API_TOKEN`), fails fast when no completed snapshot exists (listing the nearest ones), and refuses exports above a row limit (default 1,000,000) with a suggested per-network split. Pages one network at a time with pages sized by rows per account (~10k rows per request), shrinking pages on timeouts, so organizations with token-heavy wallets stay within API timeouts
 
 ## [1.12.1] - 2026-06-28
 
