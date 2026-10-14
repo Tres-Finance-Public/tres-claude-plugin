@@ -33,6 +33,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 
 DEFAULT_API_URL = "https://api.tres.finance"
 DEFAULT_AUTH_URL = "https://tres-finance.us.auth0.com/oauth/token"
@@ -75,6 +76,10 @@ COLUMNS = [
     "fiat",
 ]
 ACCOUNT_COLUMNS = COLUMNS[:10]
+# Always written as plain integers (never scientific notation or a trailing ".0")
+INTEGER_COLUMNS = {"blockNumber", "blockTimestamp"}
+# Always written as plain decimals: Mongo's Decimal128 and JSON use scientific notation for tiny values
+DECIMAL_COLUMNS = {"amount", "unitFiatPrice", "fiatValue"}
 BALANCE_COLUMNS = COLUMNS[10:]
 
 
@@ -341,6 +346,41 @@ def cell(value):
     return "" if value is None else value
 
 
+def integer_cell(value):
+    if value is None or value == "":
+        return ""
+    try:
+        number = Decimal(str(value))
+    except InvalidOperation:
+        return value
+    return str(int(number)) if number == number.to_integral_value() else value
+
+
+def decimal_cell(value):
+    """'6.20922309000E-7' -> '0.000000620922309'; values already in plain notation are kept as-is."""
+    if value is None or value == "":
+        return ""
+    text = str(value)
+    if "e" not in text.lower():
+        return text
+    try:
+        number = Decimal(text)
+    except InvalidOperation:
+        return text
+    plain = format(number, "f")
+    return plain.rstrip("0").rstrip(".") if "." in plain else plain
+
+
+def balance_cell(balance, column):
+    value = balance.get(column)
+    return decimal_cell(value) if column in DECIMAL_COLUMNS else cell(value)
+
+
+def account_cell(account, column):
+    value = account.get(column)
+    return integer_cell(value) if column in INTEGER_COLUMNS else cell(value)
+
+
 def page_plan(by_network, networks, page_size):
     """Page one network at a time (indexed on network+timestamp) with pages sized by rows per account."""
     if not by_network:
@@ -382,7 +422,7 @@ def export(api, snapshot, networks, sources, max_rows, plan, out_path):
                     for account in page:
                         documents += 1
                         networks_seen.add(account.get("network"))
-                        account_cells = [cell(account.get(column)) for column in ACCOUNT_COLUMNS]
+                        account_cells = [account_cell(account, column) for column in ACCOUNT_COLUMNS]
                         for balance in account.get("balances") or []:
                             rows += 1
                             if rows > max_rows:
@@ -390,7 +430,7 @@ def export(api, snapshot, networks, sources, max_rows, plan, out_path):
                                     f"Export exceeded the {max_rows:,} row limit; aborted and removed the partial file",
                                     EXIT_TOO_LARGE,
                                 )
-                            writer.writerow(account_cells + [cell(balance.get(column)) for column in BALANCE_COLUMNS])
+                            writer.writerow(account_cells + [balance_cell(balance, column) for column in BALANCE_COLUMNS])
                             if balance.get("unitFiatPrice") is None:
                                 missing_price += 1
                             fiat_value = balance.get("fiatValue")
@@ -422,6 +462,17 @@ def output_file_name(org_label, snapshot):
     stamp = snapshot.strftime("%Y-%m-%d") if snapshot.strftime("%H%M%S") == "000000" else snapshot.strftime("%Y-%m-%dT%H%M%SZ")
     prefix = f"{org_label}-pof" if org_label else "pof"
     return f"{prefix}.accountBalances.{stamp}.csv"
+
+
+def available_path(out_dir, file_name):
+    """Never overwrite an existing report: add " (1)", " (2)", ... like a browser download."""
+    path = os.path.join(out_dir, file_name)
+    stem, extension = os.path.splitext(file_name)
+    copy_number = 1
+    while os.path.exists(path) or os.path.exists(path + ".part"):
+        path = os.path.join(out_dir, f"{stem} ({copy_number}){extension}")
+        copy_number += 1
+    return path
 
 
 def split_list(value):
@@ -465,7 +516,7 @@ def main():
         if not args.check_only:
             out_dir = os.path.abspath(os.path.expanduser(args.out))
             os.makedirs(out_dir, exist_ok=True)
-            out_path = os.path.join(out_dir, output_file_name(args.org_label, snapshot))
+            out_path = available_path(out_dir, output_file_name(args.org_label, snapshot))
             log(f"Exporting to {out_path}...")
             plan = page_plan(by_network, networks, args.page_size)
             summary["export"] = export(api, snapshot, networks, sources, args.max_rows, plan, out_path)
